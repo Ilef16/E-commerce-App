@@ -275,26 +275,6 @@ Pour appliquer les migrations :
 dotnet ef database update
 ```
 
----
-
-# Captures d'écran
-
-> Pour ajouter des captures, enregistrez vos images dans le dossier `docs/screenshots/` et elles s'afficheront automatiquement ici.
-
-### Tableau de bord
-![Tableau de bord](docs/screenshots/capture1.png)
-
-### Gestion des clients
-![Clients](docs/screenshots/capture2.png)
-
-### Gestion des produits
-![Produits](docs/screenshots/capture3.png)
-
-### Liste des commandes
-![Commandes](docs/screenshots/capture4.png)
-
----
-
 # Livrables
 
 Ce projet contient les éléments demandés dans le cadre du test technique :
