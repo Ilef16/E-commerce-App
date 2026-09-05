@@ -31,6 +31,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot"));
+app.UseStaticFiles();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

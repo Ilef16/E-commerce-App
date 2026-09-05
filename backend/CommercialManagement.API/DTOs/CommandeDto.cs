@@ -42,7 +42,9 @@ public class CommandeDto
     public string ClientNom { get; init; } = string.Empty;
     public DateTime DateCommande { get; init; }
     public StatutCommande Statut { get; init; }
-    public decimal Total { get; init; }
+    public decimal TotalHt { get; init; }
+    public decimal Tva { get; init; }
+    public decimal TotalTtc { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public List<CommandeLigneDto> Lignes { get; init; } = [];

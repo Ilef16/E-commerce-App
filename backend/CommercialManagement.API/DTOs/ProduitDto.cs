@@ -4,7 +4,7 @@ namespace CommercialManagement.API.DTOs;
 
 public class ProduitWriteDto
 {
-    [Required, MaxLength(40)]
+    [MaxLength(40)]
     public string Reference { get; init; } = string.Empty;
 
     [Required, MaxLength(160)]
@@ -12,6 +12,13 @@ public class ProduitWriteDto
 
     [MaxLength(500)]
     public string? Description { get; init; }
+
+    [Url, MaxLength(500)]
+    public string? PhotoUrl { get; init; }
+
+    public IFormFile? Photo { get; init; }
+
+    public bool RemovePhoto { get; init; }
 
     [Range(typeof(decimal), "0", "79228162514264337593543950335")]
     public decimal PrixUnitaire { get; init; }
@@ -26,6 +33,7 @@ public class ProduitDto
     public string Reference { get; init; } = string.Empty;
     public string Libelle { get; init; } = string.Empty;
     public string? Description { get; init; }
+    public string? PhotoUrl { get; init; }
     public decimal PrixUnitaire { get; init; }
     public int Stock { get; init; }
     public DateTime CreatedAt { get; init; }

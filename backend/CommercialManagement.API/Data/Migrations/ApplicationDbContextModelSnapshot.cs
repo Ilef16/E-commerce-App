@@ -54,6 +54,7 @@ public class ApplicationDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("Reference").IsRequired().HasMaxLength(40).HasColumnType("nvarchar(40)");
             b.Property<string>("Libelle").IsRequired().HasMaxLength(160).HasColumnType("nvarchar(160)");
             b.Property<string>("Description").HasMaxLength(500).HasColumnType("nvarchar(500)");
+            b.Property<string>("PhotoUrl").HasMaxLength(500).HasColumnType("nvarchar(500)");
             b.Property<decimal>("PrixUnitaire").HasColumnType("decimal(18,2)");
             b.Property<int>("Stock").HasColumnType("int");
             b.HasKey("Id");
