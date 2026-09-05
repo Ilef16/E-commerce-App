@@ -6,6 +6,8 @@ import { ClientService } from '../../services/client.service';
 import { ClientDto, ClientWriteDto } from '../../dtos/client.dto';
 import { PageHeader } from '../../shared/components/page-header/page-header';
 import { TUNISIA_WILAYAS } from '../../shared/constants/tunisia.constants';
+import { DEFAULT_PAGE_SIZE } from '../../shared/constants/business.constants';
+import { apiErrorMessage } from '../../shared/utils/http-error';
 
 @Component({
   selector: 'app-clients',
@@ -19,11 +21,10 @@ export class Clients implements OnInit {
   clients = signal<ClientDto[]>([]);
   totalCount = signal(0);
   page = signal(1);
-  pageSize = signal(10);
+  pageSize = signal(DEFAULT_PAGE_SIZE);
   search = signal('');
   loading = signal(false);
   error = signal<string | null>(null);
-  detailsClientId = signal<number | null>(null);
   detailsClient = signal<ClientDto | null>(null);
   editingClientId = signal<number | null>(null);
   editDraft = signal<ClientWriteDto | null>(null);
@@ -51,7 +52,7 @@ export class Clients implements OnInit {
     this.error.set(null);
 
     this.clientService
-      .getAll({ page: this.page(), pageSize: this.pageSize(), q: this.search() })
+      .getAll({ page: this.page(), pageSize: this.pageSize(), search: this.search() })
       .subscribe({
         next: (result) => {
           this.clients.set(result.items);
@@ -79,7 +80,6 @@ export class Clients implements OnInit {
 
   openDetails(client: ClientDto): void {
     this.cancelOtherModals();
-    this.detailsClientId.set(client.id);
     this.detailsClient.set(client);
   }
 
@@ -127,7 +127,7 @@ export class Clients implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.createFieldErrors.set(this.fieldErrorsFromApi(error));
         if (!Object.values(this.createFieldErrors()).some(Boolean)) {
-          this.createFormError.set(this.apiError(error, 'Impossible de créer ce client.'));
+          this.createFormError.set(apiErrorMessage(error, 'Impossible de créer ce client.'));
         }
       },
     });
@@ -179,7 +179,7 @@ export class Clients implements OnInit {
       },
       error: (error: HttpErrorResponse) => {
         this.cancelDelete();
-        this.error.set(this.apiError(error, 'Impossible de supprimer ce client.'));
+        this.error.set(apiErrorMessage(error, 'Impossible de supprimer ce client.'));
       },
     });
   }
@@ -202,7 +202,7 @@ export class Clients implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.editFieldErrors.set(this.fieldErrorsFromApi(error));
         if (!Object.values(this.editFieldErrors()).some(Boolean)) {
-          this.editFormError.set(this.apiError(error, 'Impossible de modifier ce client.'));
+          this.editFormError.set(apiErrorMessage(error, 'Impossible de modifier ce client.'));
         }
       },
     });
@@ -211,7 +211,6 @@ export class Clients implements OnInit {
   private cancelOtherModals(): void {
     this.actionMenuClientId.set(null);
     this.addingClient.set(false);
-    this.detailsClientId.set(null);
     this.detailsClient.set(null);
     this.editingClientId.set(null);
     this.editDraft.set(null);
@@ -236,14 +235,6 @@ export class Clients implements OnInit {
       ville: null,
       codePostal: null,
     };
-  }
-
-  private apiError(error: HttpErrorResponse, fallback: string): string {
-    if (error.status === 405) {
-      return 'Le backend doit être redémarré pour activer la création des clients.';
-    }
-
-    return error.error?.detail ?? error.error?.title ?? fallback;
   }
 
   private validateClient(draft: ClientWriteDto): { identifiant: string; nom: string; email: string } {

@@ -4,11 +4,12 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { ClientDto, ClientWriteDto } from '../dtos/client.dto';
 import { PagedResult } from '../dtos/paged-result.dto';
+import { DEFAULT_PAGE_SIZE } from '../shared/constants/business.constants';
 
 export interface ClientListParams {
   page?: number;
   pageSize?: number;
-  q?: string;
+  search?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -18,17 +19,13 @@ export class ClientService {
   getAll(params: ClientListParams = {}): Observable<PagedResult<ClientDto>> {
     let httpParams = new HttpParams()
       .set('page', params.page ?? 1)
-      .set('pageSize', params.pageSize ?? 20);
+      .set('pageSize', params.pageSize ?? DEFAULT_PAGE_SIZE);
 
-    if (params.q?.trim()) {
-      httpParams = httpParams.set('q', params.q.trim());
+    if (params.search?.trim()) {
+      httpParams = httpParams.set('search', params.search.trim());
     }
 
     return this.api.get<PagedResult<ClientDto>>('/api/clients', httpParams);
-  }
-
-  getById(id: number): Observable<ClientDto> {
-    return this.api.get<ClientDto>(`/api/clients/${id}`);
   }
 
   create(client: ClientWriteDto): Observable<ClientDto> {

@@ -15,6 +15,6 @@ public class Commande : EntityBase
 
     public void RecalculerTotal()
     {
-        Total = Lignes.Sum(ligne => ligne.TotalLigne);
+        Total = Lignes.Sum(ligne => ligne.PrixUnitaire * ligne.Quantite);
     }
 }

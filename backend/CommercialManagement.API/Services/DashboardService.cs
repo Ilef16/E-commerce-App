@@ -11,7 +11,6 @@ public class DashboardService(ApplicationDbContext context) : IDashboardService
 {
     public async Task<DashboardDto> GetStatsAsync(CancellationToken ct = default)
     {
-        // EF Core DbContext is not thread-safe — queries are run sequentially
         var totalClients   = await context.Clients.CountAsync(ct);
         var totalProduits  = await context.Produits.CountAsync(ct);
         var totalCommandes = await context.Commandes.CountAsync(ct);
@@ -21,7 +20,6 @@ public class DashboardService(ApplicationDbContext context) : IDashboardService
         var livrees   = await context.Commandes.CountAsync(c => c.Statut == StatutCommande.Livree,   ct);
         var annulees  = await context.Commandes.CountAsync(c => c.Statut == StatutCommande.Annulee,  ct);
 
-        // CA = sum of validated + delivered orders (HT)
         var caHt = await context.Commandes
             .Where(c => c.Statut == StatutCommande.Validee || c.Statut == StatutCommande.Livree)
             .SumAsync(c => c.Total, ct);

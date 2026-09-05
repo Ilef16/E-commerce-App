@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { CommandeDto, CommandeWriteDto } from '../dtos/commande.dto';
 import { PagedResult } from '../dtos/paged-result.dto';
+import { DEFAULT_PAGE_SIZE } from '../shared/constants/business.constants';
 
 export interface CommandeListParams {
   page?: number;
@@ -17,12 +18,8 @@ export class CommandeService {
   getAll(params: CommandeListParams = {}): Observable<PagedResult<CommandeDto>> {
     const httpParams = new HttpParams()
       .set('page', params.page ?? 1)
-      .set('pageSize', params.pageSize ?? 10);
+      .set('pageSize', params.pageSize ?? DEFAULT_PAGE_SIZE);
     return this.api.get<PagedResult<CommandeDto>>('/api/orders', httpParams);
-  }
-
-  getById(id: number): Observable<CommandeDto> {
-    return this.api.get<CommandeDto>(`/api/orders/${id}`);
   }
 
   create(order: CommandeWriteDto): Observable<CommandeDto> {
@@ -33,7 +30,7 @@ export class CommandeService {
     return this.api.post<CommandeDto>(`/api/orders/${id}/validate`, {});
   }
 
-  delete(id: number): Observable<void> {
-    return this.api.delete<void>(`/api/orders/${id}`);
+  cancel(id: number): Observable<CommandeDto> {
+    return this.api.post<CommandeDto>(`/api/orders/${id}/cancel`, null);
   }
 }

@@ -1,8 +1,8 @@
 using CommercialManagement.API.Constants;
 using CommercialManagement.API.DTOs;
+using CommercialManagement.API.Helpers;
 using CommercialManagement.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CommercialManagement.API.Controllers;
 
@@ -10,7 +10,6 @@ namespace CommercialManagement.API.Controllers;
 [Route("api/products")]
 public class ProduitsController(IProduitService produitService) : ControllerBase
 {
-    /// <summary>Returns a paginated list of products.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<ProduitDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -19,13 +18,13 @@ public class ProduitsController(IProduitService produitService) : ControllerBase
         [FromQuery] int pageSize = BusinessConstants.DefaultPageSize,
         CancellationToken ct = default)
     {
-        if (page < 1 || pageSize < 1 || pageSize > BusinessConstants.MaxPageSize)
-            return BadRequest(Problem($"page doit être >= 1 et pageSize compris entre 1 et {BusinessConstants.MaxPageSize}."));
+        var paginationError = Pagination.Validate(page, pageSize);
+        if (paginationError is not null)
+            return BadRequest(ApiProblem.Create(paginationError, "Paramètres invalides", StatusCodes.Status400BadRequest));
 
         return Ok(await produitService.GetAllAsync(page, pageSize, ct));
     }
 
-    /// <summary>Returns a single product by id.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ProduitDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -35,7 +34,6 @@ public class ProduitsController(IProduitService produitService) : ControllerBase
         return produit is null ? NotFound() : Ok(produit);
     }
 
-    /// <summary>Creates a new product.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(ProduitDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -48,11 +46,10 @@ public class ProduitsController(IProduitService produitService) : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(Problem(ex.Message, "Produit déjà existant"));
+            return Conflict(ApiProblem.Create(ex.Message, "Produit invalide", StatusCodes.Status409Conflict));
         }
     }
 
-    /// <summary>Updates an existing product.</summary>
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(ProduitDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -66,11 +63,10 @@ public class ProduitsController(IProduitService produitService) : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(Problem(ex.Message, "Référence déjà utilisée"));
+            return Conflict(ApiProblem.Create(ex.Message, "Produit invalide", StatusCodes.Status409Conflict));
         }
     }
 
-    /// <summary>Deletes a product by id.</summary>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -81,12 +77,9 @@ public class ProduitsController(IProduitService produitService) : ControllerBase
         {
             return await produitService.DeleteAsync(id, ct) ? NoContent() : NotFound();
         }
-        catch (DbUpdateException)
+        catch (InvalidOperationException ex)
         {
-            return Conflict(Problem("Ce produit est utilisé par une commande et ne peut pas être supprimé.", "Produit utilisé"));
+            return Conflict(ApiProblem.Create(ex.Message, "Produit utilisé", StatusCodes.Status409Conflict));
         }
     }
-
-    private static ProblemDetails Problem(string detail, string title = "Paramètre invalide") =>
-        new() { Title = title, Detail = detail };
 }

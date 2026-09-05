@@ -13,9 +13,6 @@ public class ProduitWriteDto
     [MaxLength(500)]
     public string? Description { get; init; }
 
-    [Url, MaxLength(500)]
-    public string? PhotoUrl { get; init; }
-
     public IFormFile? Photo { get; init; }
 
     public bool RemovePhoto { get; init; }
