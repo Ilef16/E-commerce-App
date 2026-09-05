@@ -10,4 +10,5 @@ public interface ICommandeService
     Task<CommandeDto?> UpdateAsync(int id, CommandeWriteDto input, CancellationToken ct = default);
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);
     Task<CommandeDto?> ValidateAsync(int id, CancellationToken ct = default);
+    Task<CommandeDto?> CancelAsync(int id, CancellationToken ct = default);
 }

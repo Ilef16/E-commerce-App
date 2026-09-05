@@ -1,5 +1,6 @@
 using CommercialManagement.API.Constants;
 using CommercialManagement.API.DTOs;
+using CommercialManagement.API.Helpers;
 using CommercialManagement.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,26 +10,22 @@ namespace CommercialManagement.API.Controllers;
 [Route("api/[controller]")]
 public class ClientsController(IClientService clientService) : ControllerBase
 {
-    /// <summary>Returns a paginated list of clients, optionally filtered by a search term.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<ClientDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = BusinessConstants.DefaultPageSize,
-        [FromQuery] string? q = null,
+        [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
-        if (page < 1)
-            return BadRequest(Problem("Le paramètre 'page' doit être supérieur ou égal à 1."));
+        var paginationError = Pagination.Validate(page, pageSize);
+        if (paginationError is not null)
+            return BadRequest(ApiProblem.Create(paginationError, "Paramètres invalides", StatusCodes.Status400BadRequest));
 
-        if (pageSize < 1 || pageSize > BusinessConstants.MaxPageSize)
-            return BadRequest(Problem($"Le paramètre 'pageSize' doit être compris entre 1 et {BusinessConstants.MaxPageSize}."));
-
-        return Ok(await clientService.GetPagedAsync(page, pageSize, q, ct));
+        return Ok(await clientService.GetPagedAsync(page, pageSize, search, ct));
     }
 
-    /// <summary>Returns a single client by id.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ClientDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -38,7 +35,6 @@ public class ClientsController(IClientService clientService) : ControllerBase
         return client is null ? NotFound() : Ok(client);
     }
 
-    /// <summary>Creates a new client.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(ClientDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -51,11 +47,10 @@ public class ClientsController(IClientService clientService) : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(Problem(ex.Message, "Client déjà existant"));
+            return Conflict(ApiProblem.Create(ex.Message, "Client déjà existant", StatusCodes.Status409Conflict));
         }
     }
 
-    /// <summary>Updates an existing client.</summary>
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(ClientDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -69,20 +64,23 @@ public class ClientsController(IClientService clientService) : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(Problem(ex.Message, "Conflit de données"));
+            return Conflict(ApiProblem.Create(ex.Message, "Conflit de données", StatusCodes.Status409Conflict));
         }
     }
 
-    /// <summary>Deletes a client by id.</summary>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        return await clientService.DeleteAsync(id, ct) ? NoContent() : NotFound();
+        try
+        {
+            return await clientService.DeleteAsync(id, ct) ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiProblem.Create(ex.Message, "Suppression impossible", StatusCodes.Status409Conflict));
+        }
     }
-
-    // Returns a ProblemDetails object with a detail message and optional title.
-    private static ProblemDetails Problem(string detail, string title = "Paramètre invalide") =>
-        new() { Title = title, Detail = detail };
 }

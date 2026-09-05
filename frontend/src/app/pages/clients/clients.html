@@ -34,13 +34,13 @@
       </div>
       <p class="modal-description">Renseignez les informations du nouveau client.</p>
       <div class="create-form-grid">
-            <label>
-              <span class="field-label"><span>*</span> Identifiant</span>
-              <input [(ngModel)]="createDraft().identifiant" aria-label="Identifiant" placeholder="CLI-001" />
-              @if (createSubmitted() && createFieldErrors().identifiant) {
-                <small class="field-error">{{ createFieldErrors().identifiant }}</small>
-              }
-            </label>
+        <label>
+          <span class="field-label"><span>*</span> Identifiant</span>
+          <input [(ngModel)]="createDraft().identifiant" aria-label="Identifiant" placeholder="CLI-001" />
+          @if (createSubmitted() && createFieldErrors().identifiant) {
+            <small class="field-error">{{ createFieldErrors().identifiant }}</small>
+          }
+        </label>
         <label>
           <span class="field-label"><span>*</span> Nom</span>
           <input [(ngModel)]="createDraft().nom" aria-label="Nom" placeholder="Nom" />
@@ -110,7 +110,7 @@
       <table class="data-table" aria-label="Liste des clients">
         <thead>
           <tr>
-                <th scope="col">Identifiant</th>
+            <th scope="col">Identifiant</th>
             <th scope="col">Nom</th>
             <th scope="col">Prénom / Raison sociale</th>
             <th scope="col">Email</th>
@@ -184,14 +184,14 @@
 }
 
 @if (detailsClient(); as client) {
-  <div class="modal-backdrop" (click)="detailsClient.set(null); detailsClientId.set(null)">
+  <div class="modal-backdrop" (click)="detailsClient.set(null)">
     <section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-client-title" (click)="$event.stopPropagation()">
       <div class="create-modal-header">
         <div>
           <span class="modal-kicker">Fiche client</span>
           <h2 id="detail-client-title">{{ client.nom }} {{ client.prenom ?? '' }}</h2>
         </div>
-        <button class="modal-close" type="button" (click)="detailsClient.set(null); detailsClientId.set(null)" aria-label="Fermer">×</button>
+        <button class="modal-close" type="button" (click)="detailsClient.set(null)" aria-label="Fermer">×</button>
       </div>
       <div class="detail-list">
         <div><span>Identifiant</span><strong>{{ client.identifiant }}</strong></div>
@@ -201,13 +201,14 @@
         <div><span>Adresse</span><strong>{{ client.adresse ?? '—' }}</strong></div>
         <div><span>Gouvernorat</span><strong>{{ client.ville ?? '—' }}</strong></div>
         <div><span>Code postal</span><strong>{{ client.codePostal ?? '—' }}</strong></div>
+        <div><span>Commandes</span><strong>{{ client.nombreCommandes }}</strong></div>
         <div><span>Créé le</span><strong>{{ client.createdAt | date : 'dd/MM/yyyy' }}</strong></div>
       </div>
       <div class="detail-actions">
         <button class="action-btn" type="button" (click)="startEdit(client)">
           <span aria-hidden="true">&#9998;</span> Modifier
         </button>
-        <button class="action-btn primary" type="button" (click)="detailsClient.set(null); detailsClientId.set(null)">
+        <button class="action-btn primary" type="button" (click)="detailsClient.set(null)">
           Fermer
         </button>
       </div>

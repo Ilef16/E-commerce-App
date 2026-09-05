@@ -4,12 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PageHeader } from '../../shared/components/page-header/page-header';
 import { ProduitService } from '../../services/produit.service';
-import { ClientService } from '../../services/client.service';
-import { CommandeService } from '../../services/commande.service';
 import { ProduitDto, ProduitWriteDto } from '../../dtos/produit.dto';
-import { ClientDto } from '../../dtos/client.dto';
-import { CommandeWriteDto } from '../../dtos/commande.dto';
 import { environment } from '../../../environments/environment';
+import { DEFAULT_PAGE_SIZE } from '../../shared/constants/business.constants';
+import { apiErrorMessage } from '../../shared/utils/http-error';
 
 @Component({
   selector: 'app-produits',
@@ -18,22 +16,19 @@ import { environment } from '../../../environments/environment';
   styleUrl: './produits.scss',
 })
 export class Produits implements OnInit {
-  // ── List ───────────────────────────────────────
   produits = signal<ProduitDto[]>([]);
   totalCount = signal(0);
   page = signal(1);
-  readonly pageSize = 10;
+  readonly pageSize = DEFAULT_PAGE_SIZE;
   loading = signal(false);
   error = signal('');
 
-  // ── Modals ─────────────────────────────────────
   creating = signal(false);
   editing = signal<ProduitDto | null>(null);
   details = signal<ProduitDto | null>(null);
   deleting = signal<ProduitDto | null>(null);
   actionMenuId = signal<number | null>(null);
 
-  // ── Form ───────────────────────────────────────
   draft = signal<ProduitWriteDto>(this.emptyDraft());
   selectedPhoto = signal<File | null>(null);
   photoPreview = signal<string | null>(null);
@@ -41,24 +36,12 @@ export class Produits implements OnInit {
   formError = signal('');
   submitted = signal(false);
 
-  // ── Quick-order modal ──────────────────────────
-  orderProduct = signal<ProduitDto | null>(null);
-  orderClientId = signal<number | null>(null);
-  orderQuantity = signal(1);
-  orderError = signal('');
-  clients = signal<ClientDto[]>([]);
-
-  constructor(
-    private readonly produitService: ProduitService,
-    private readonly clientService: ClientService,
-    private readonly commandeService: CommandeService,
-  ) {}
+  constructor(private readonly produitService: ProduitService) {}
 
   ngOnInit(): void {
     this.load();
   }
 
-  // ── List ───────────────────────────────────────
   load(): void {
     this.loading.set(true);
     this.produitService.getAll(this.page(), this.pageSize).subscribe({
@@ -86,12 +69,9 @@ export class Produits implements OnInit {
 
   photoUrl(url: string | null): string | null {
     if (!url) return null;
-    return url.startsWith('http')
-      ? url
-      : `${environment.apiUrl || 'http://localhost:5150'}${url}`;
+    return url.startsWith('http') ? url : `${environment.assetBaseUrl}${url}`;
   }
 
-  // ── Create / Edit ──────────────────────────────
   openCreate(): void {
     this.closeModals();
     this.draft.set(this.emptyDraft());
@@ -100,7 +80,13 @@ export class Produits implements OnInit {
 
   openEdit(p: ProduitDto): void {
     this.closeModals();
-    this.draft.set({ ...p });
+    this.draft.set({
+      reference: p.reference,
+      libelle: p.libelle,
+      description: p.description,
+      prixUnitaire: p.prixUnitaire,
+      stock: p.stock,
+    });
     this.photoPreview.set(p.photoUrl);
     this.editing.set(p);
   }
@@ -116,9 +102,12 @@ export class Produits implements OnInit {
       : this.produitService.create(draft, this.selectedPhoto());
 
     request.subscribe({
-      next: () => { this.closeModals(); this.load(); },
+      next: () => {
+        this.closeModals();
+        this.load();
+      },
       error: (e: HttpErrorResponse) => {
-        this.formError.set(e.error?.detail ?? e.error?.title ?? 'Le produit n\'a pas pu être enregistré.');
+        this.formError.set(apiErrorMessage(e, 'Le produit n\'a pas pu être enregistré.'));
       },
     });
   }
@@ -137,13 +126,11 @@ export class Produits implements OnInit {
     this.removePhoto.set(true);
   }
 
-  // ── Details ────────────────────────────────────
   openDetails(p: ProduitDto): void {
     this.closeModals();
     this.details.set(p);
   }
 
-  // ── Delete ─────────────────────────────────────
   askDelete(p: ProduitDto): void {
     this.closeModals();
     this.deleting.set(p);
@@ -153,57 +140,17 @@ export class Produits implements OnInit {
     const p = this.deleting();
     if (!p) return;
     this.produitService.delete(p.id).subscribe({
-      next: () => { this.closeModals(); this.load(); },
+      next: () => {
+        this.closeModals();
+        this.load();
+      },
       error: (e: HttpErrorResponse) => {
         this.closeModals();
-        this.error.set(e.error?.detail ?? 'Impossible de supprimer le produit.');
+        this.error.set(apiErrorMessage(e, 'Impossible de supprimer le produit.'));
       },
     });
   }
 
-  // ── Quick-order ────────────────────────────────
-  openOrder(p: ProduitDto): void {
-    this.closeModals();
-    this.orderProduct.set(p);
-    this.orderClientId.set(null);
-    this.orderQuantity.set(1);
-    this.orderError.set('');
-    // Load clients lazily — only when the order modal opens
-    if (this.clients().length === 0) {
-      this.clientService.getAll({ page: 1, pageSize: 100 }).subscribe({
-        next: (result) => this.clients.set(result.items),
-      });
-    }
-  }
-
-  closeOrder(): void {
-    this.orderProduct.set(null);
-    this.orderError.set('');
-  }
-
-  submitOrder(): void {
-    const product = this.orderProduct();
-    const clientId = this.orderClientId();
-    const quantity = this.orderQuantity();
-
-    if (!product || !clientId || quantity < 1 || quantity > product.stock) {
-      this.orderError.set('Sélectionnez un client et une quantité disponible.');
-      return;
-    }
-
-    const order: CommandeWriteDto = {
-      clientId,
-      lignes: [{ produitId: product.id, quantite: quantity }],
-    };
-
-    this.commandeService.create(order).subscribe({
-      next: () => { this.closeOrder(); this.load(); },
-      error: (e: HttpErrorResponse) =>
-        this.orderError.set(e.error?.detail ?? 'Impossible de créer la commande.'),
-    });
-  }
-
-  // ── Menus / utils ──────────────────────────────
   toggleActionMenu(id: number): void {
     this.actionMenuId.update((current) => (current === id ? null : id));
   }
@@ -226,7 +173,6 @@ export class Produits implements OnInit {
       reference: `PROD-${Date.now().toString().slice(-8)}`,
       libelle: '',
       description: null,
-      photoUrl: null,
       prixUnitaire: 0,
       stock: 0,
     };

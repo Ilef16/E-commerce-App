@@ -1,128 +1,147 @@
 <app-page-header
   title="Tableau de bord"
-  subtitle="Vue d'ensemble de l'activité commerciale."
+  subtitle="Pilotez clients, stock et commandes depuis un seul écran."
 />
 
-
 @if (stats(); as s) {
-
-  <!-- ── KPI row ───────────────────────────────── -->
-  <div class="kpi-grid">
-
-    <a class="kpi-card" routerLink="/clients">
-      <div class="kpi-top">
-        <span class="kpi-icon clients-icon">👥</span>
-        <span class="kpi-label">Clients</span>
-      </div>
-      <strong class="kpi-value">{{ s.totalClients }}</strong>
-      <span class="kpi-sub">enregistrés</span>
-    </a>
-
-    <a class="kpi-card" routerLink="/produits">
-      <div class="kpi-top">
-        <span class="kpi-icon produits-icon">📦</span>
-        <span class="kpi-label">Produits</span>
-      </div>
-      <strong class="kpi-value">{{ s.totalProduits }}</strong>
-      <span class="kpi-sub">au catalogue</span>
-    </a>
-
-    <a class="kpi-card" routerLink="/commandes">
-      <div class="kpi-top">
-        <span class="kpi-icon commandes-icon">🛒</span>
-        <span class="kpi-label">Commandes</span>
-      </div>
-      <strong class="kpi-value">{{ s.totalCommandes }}</strong>
-      <span class="kpi-sub">au total</span>
-    </a>
-
-    <div class="kpi-card kpi-ca">
-      <div class="kpi-top">
-        <span class="kpi-icon ca-icon">💰</span>
-        <span class="kpi-label">Chiffre d'affaires</span>
-      </div>
-      <strong class="kpi-value">{{ s.chiffreAffairesTtc | number : '1.2-2' }} TND</strong>
-      <span class="kpi-sub">TTC · HT : {{ s.chiffreAffairesHt | number : '1.2-2' }} TND</span>
+  <section class="hero" aria-label="Synthèse du jour">
+    <div>
+      <p class="hero-kicker">{{ today | date : "EEEE d MMMM y" }}</p>
+      <h2>Activité commerciale</h2>
+      <p class="hero-copy">
+        {{ s.totalCommandes }} commande{{ s.totalCommandes > 1 ? 's' : '' }}
+        · {{ s.commandesValidees }} validée{{ s.commandesValidees > 1 ? 's' : '' }}
+        · {{ s.totalClients }} client{{ s.totalClients > 1 ? 's' : '' }}
+      </p>
     </div>
-
-  </div>
-
-  <!-- ── Commandes status breakdown ───────────── -->
-  <section class="section">
-    <h2 class="section-title">Statut des commandes</h2>
-    <div class="status-grid">
-
-      <a class="status-card draft" routerLink="/commandes">
-        <div class="status-count">{{ s.commandesBrouillon }}</div>
-        <div class="status-info">
-          <span class="status-badge badge-draft">Brouillon</span>
-          <span class="status-desc">en attente de validation</span>
-        </div>
-      </a>
-
-      <a class="status-card validated" routerLink="/commandes">
-        <div class="status-count">{{ s.commandesValidees }}</div>
-        <div class="status-info">
-          <span class="status-badge badge-validated">Validées</span>
-          <span class="status-desc">stock décrémenté</span>
-        </div>
-      </a>
-
-      <a class="status-card delivered" routerLink="/commandes">
-        <div class="status-count">{{ s.commandesLivrees }}</div>
-        <div class="status-info">
-          <span class="status-badge badge-delivered">Livrées</span>
-          <span class="status-desc">livrées au client</span>
-        </div>
-      </a>
-
-      <a class="status-card cancelled" routerLink="/commandes">
-        <div class="status-count">{{ s.commandesAnnulees }}</div>
-        <div class="status-info">
-          <span class="status-badge badge-cancelled">Annulées</span>
-          <span class="status-desc">non facturées</span>
-        </div>
-      </a>
-
+    <div class="hero-ca">
+      <span>Chiffre d'affaires TTC</span>
+      <strong>{{ s.chiffreAffairesTtc | number : '1.2-2' }} <small>TND</small></strong>
+      <em>HT {{ s.chiffreAffairesHt | number : '1.2-2' }} TND · commandes validées</em>
     </div>
   </section>
 
-  <!-- ── Stock alerts ──────────────────────────── -->
-  @if (s.produitsRupture > 0 || s.produitsStockFaible > 0) {
-    <section class="section">
-      <h2 class="section-title">Alertes stock</h2>
-      <div class="alerts">
+  <section class="kpi-grid" aria-label="Indicateurs clés">
+    <a class="kpi" routerLink="/clients">
+      <span class="kpi-icon clients" aria-hidden="true"></span>
+      <span class="kpi-label">Clients</span>
+      <strong>{{ s.totalClients }}</strong>
+      <small>fiches actives</small>
+    </a>
+    <a class="kpi" routerLink="/produits">
+      <span class="kpi-icon products" aria-hidden="true"></span>
+      <span class="kpi-label">Produits</span>
+      <strong>{{ s.totalProduits }}</strong>
+      <small>références catalogue</small>
+    </a>
+    <a class="kpi" routerLink="/commandes">
+      <span class="kpi-icon orders" aria-hidden="true"></span>
+      <span class="kpi-label">Commandes</span>
+      <strong>{{ s.totalCommandes }}</strong>
+      <small>pipeline en cours</small>
+    </a>
+    <a class="kpi" routerLink="/produits">
+      <span class="kpi-icon stock" aria-hidden="true"></span>
+      <span class="kpi-label">Alertes stock</span>
+      <strong>{{ s.produitsRupture + s.produitsStockFaible }}</strong>
+      <small>à surveiller</small>
+    </a>
+  </section>
 
-        @if (s.produitsRupture > 0) {
-          <a class="alert-card rupture" routerLink="/produits">
-            <span class="alert-icon">🚨</span>
-            <div>
-              <strong>
-                {{ s.produitsRupture }} produit{{ s.produitsRupture > 1 ? 's' : '' }} en rupture
-              </strong>
-              <span>Stock = 0 · commande impossible</span>
-            </div>
-          </a>
-        }
+  <div class="panels">
+    <section class="panel">
+      <header>
+        <h2>Statut des commandes</h2>
+        <a routerLink="/commandes">Voir tout</a>
+      </header>
 
-        @if (s.produitsStockFaible > 0) {
-          <a class="alert-card faible" routerLink="/produits">
-            <span class="alert-icon">⚠️</span>
-            <div>
-              <strong>
-                {{ s.produitsStockFaible }} produit{{ s.produitsStockFaible > 1 ? 's' : '' }} en stock faible
-              </strong>
-              <span>Stock ≤ 5 unités · réapprovisionnement conseillé</span>
-            </div>
-          </a>
-        }
+      <div class="pipeline" aria-hidden="true">
+        <span class="seg draft" [style.flex]="s.commandesBrouillon || 0.15"></span>
+        <span class="seg ok" [style.flex]="s.commandesValidees || 0.15"></span>
+        <span class="seg done" [style.flex]="s.commandesLivrees || 0.15"></span>
+        <span class="seg ko" [style.flex]="s.commandesAnnulees || 0.15"></span>
+      </div>
 
+      <div class="status-list">
+        <a routerLink="/commandes" class="status draft">
+          <span class="dot"></span>
+          <div>
+            <strong>Brouillon</strong>
+            <small>en attente de validation</small>
+          </div>
+          <b>{{ s.commandesBrouillon }}</b>
+          <em>{{ share(s.commandesBrouillon) }}%</em>
+        </a>
+        <a routerLink="/commandes" class="status ok">
+          <span class="dot"></span>
+          <div>
+            <strong>Validées</strong>
+            <small>stock décrémenté</small>
+          </div>
+          <b>{{ s.commandesValidees }}</b>
+          <em>{{ share(s.commandesValidees) }}%</em>
+        </a>
+        <a routerLink="/commandes" class="status done">
+          <span class="dot"></span>
+          <div>
+            <strong>Livrées</strong>
+            <small>incluses au chiffre d'affaires</small>
+          </div>
+          <b>{{ s.commandesLivrees }}</b>
+          <em>{{ share(s.commandesLivrees) }}%</em>
+        </a>
+        <a routerLink="/commandes" class="status ko">
+          <span class="dot"></span>
+          <div>
+            <strong>Annulées</strong>
+            <small>hors chiffre d'affaires</small>
+          </div>
+          <b>{{ s.commandesAnnulees }}</b>
+          <em>{{ share(s.commandesAnnulees) }}%</em>
+        </a>
       </div>
     </section>
-  }
 
-} @else if (apiState() === 'online' && !statsError()) {
-  <p class="state-msg">Chargement des statistiques…</p>
-} @else if (statsError()) {
-  <p class="state-msg error">Impossible de charger les statistiques.</p>
+    <section class="panel">
+      <header>
+        <h2>Santé du stock</h2>
+        <a routerLink="/produits">Gérer</a>
+      </header>
+
+      @if (hasStockAlerts()) {
+        <div class="alerts">
+          @if (s.produitsRupture > 0) {
+            <a class="alert rupture" routerLink="/produits">
+              <span>Rupture</span>
+              <strong>{{ s.produitsRupture }}</strong>
+              <small>produit{{ s.produitsRupture > 1 ? 's' : '' }} à 0 unité</small>
+            </a>
+          }
+          @if (s.produitsStockFaible > 0) {
+            <a class="alert low" routerLink="/produits">
+              <span>Stock faible</span>
+              <strong>{{ s.produitsStockFaible }}</strong>
+              <small>≤ {{ lowStockThreshold }} unités</small>
+            </a>
+          }
+        </div>
+      } @else {
+        <div class="stock-ok">
+          <strong>Stock sous contrôle</strong>
+          <p>Aucune rupture ni seuil critique. Les {{ s.totalProduits }} produits sont disponibles à la commande.</p>
+          <a routerLink="/produits">Ouvrir le catalogue</a>
+        </div>
+      }
+    </section>
+  </div>
+} @else if (apiState() === 'loading') {
+  <div class="skeleton" aria-busy="true" aria-label="Chargement du tableau de bord">
+    <div class="sk-hero"></div>
+    <div class="sk-row"></div>
+  </div>
+} @else {
+  <div class="empty-error" role="alert">
+    <strong>Statistiques indisponibles</strong>
+    <p>Vérifiez que l’API est démarrée, puis rechargez la page.</p>
+  </div>
 }

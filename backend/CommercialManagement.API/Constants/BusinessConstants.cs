@@ -17,4 +17,9 @@ public static class BusinessConstants
 
     /// <summary>Default page size for paginated queries.</summary>
     public const int DefaultPageSize = 10;
+
+    public const string ProductUploadFolder = "uploads/products";
+
+    public static readonly string[] AllowedPhotoExtensions =
+        [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".avif"];
 }

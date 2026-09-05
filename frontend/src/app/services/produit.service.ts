@@ -4,18 +4,15 @@ import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { ProduitDto, ProduitWriteDto } from '../dtos/produit.dto';
 import { PagedResult } from '../dtos/paged-result.dto';
+import { DEFAULT_PAGE_SIZE } from '../shared/constants/business.constants';
 
 @Injectable({ providedIn: 'root' })
 export class ProduitService {
   constructor(private readonly api: ApiService) {}
 
-  getAll(page = 1, pageSize = 10): Observable<PagedResult<ProduitDto>> {
+  getAll(page = 1, pageSize = DEFAULT_PAGE_SIZE): Observable<PagedResult<ProduitDto>> {
     const params = new HttpParams().set('page', page).set('pageSize', pageSize);
     return this.api.get<PagedResult<ProduitDto>>('/api/products', params);
-  }
-
-  getById(id: number): Observable<ProduitDto> {
-    return this.api.get<ProduitDto>(`/api/products/${id}`);
   }
 
   create(produit: ProduitWriteDto, photo: File | null): Observable<ProduitDto> {

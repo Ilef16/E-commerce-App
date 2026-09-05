@@ -1,5 +1,6 @@
 using CommercialManagement.API.Constants;
 using CommercialManagement.API.DTOs;
+using CommercialManagement.API.Helpers;
 using CommercialManagement.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,6 @@ namespace CommercialManagement.API.Controllers;
 [Route("api/orders")]
 public class CommandesController(ICommandeService commandeService) : ControllerBase
 {
-    /// <summary>Returns a paginated list of orders, most recent first.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<CommandeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -18,13 +18,13 @@ public class CommandesController(ICommandeService commandeService) : ControllerB
         [FromQuery] int pageSize = BusinessConstants.DefaultPageSize,
         CancellationToken ct = default)
     {
-        if (page < 1 || pageSize < 1 || pageSize > BusinessConstants.MaxPageSize)
-            return BadRequest(Problem($"page >= 1 et pageSize entre 1 et {BusinessConstants.MaxPageSize}.", "Paramètres invalides"));
+        var paginationError = Pagination.Validate(page, pageSize);
+        if (paginationError is not null)
+            return BadRequest(ApiProblem.Create(paginationError, "Paramètres invalides", StatusCodes.Status400BadRequest));
 
         return Ok(await commandeService.GetPagedAsync(page, pageSize, ct));
     }
 
-    /// <summary>Returns a single order by id, including its lines.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(CommandeDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -34,42 +34,23 @@ public class CommandesController(ICommandeService commandeService) : ControllerB
         return commande is null ? NotFound() : Ok(commande);
     }
 
-    /// <summary>Creates a new order in Brouillon status.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(CommandeDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(CommandeWriteDto input, CancellationToken ct)
     {
-        try
-        {
-            var commande = await commandeService.CreateAsync(input, ct);
-            return CreatedAtAction(nameof(GetById), new { id = commande.Id }, commande);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(Problem(ex.Message, "Commande invalide"));
-        }
+        return await Execute(async () => await commandeService.CreateAsync(input, ct), created: true);
     }
 
-    /// <summary>Updates a Brouillon order. Validated or cancelled orders cannot be modified.</summary>
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(CommandeDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(int id, CommandeWriteDto input, CancellationToken ct)
     {
-        try
-        {
-            var commande = await commandeService.UpdateAsync(id, input, ct);
-            return commande is null ? NotFound() : Ok(commande);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(Problem(ex.Message, "Modification impossible"));
-        }
+        return await Execute(() => commandeService.UpdateAsync(id, input, ct));
     }
 
-    /// <summary>Deletes a Brouillon order. Validated or cancelled orders cannot be deleted.</summary>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -82,30 +63,44 @@ public class CommandesController(ICommandeService commandeService) : ControllerB
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(Problem(ex.Message, "Suppression impossible"));
+            return BadRequest(ApiProblem.Create(ex.Message, "Suppression impossible", StatusCodes.Status400BadRequest));
         }
     }
 
-    /// <summary>
-    /// Validates a Brouillon order: checks stock availability then decrements stock atomically.
-    /// </summary>
     [HttpPost("{id:int}/validate")]
     [ProducesResponseType(typeof(CommandeDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Validate(int id, CancellationToken ct)
     {
+        return await Execute(() => commandeService.ValidateAsync(id, ct), errorTitle: "Validation impossible");
+    }
+
+    [HttpPost("{id:int}/cancel")]
+    [ProducesResponseType(typeof(CommandeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Cancel(int id, CancellationToken ct)
+    {
+        return await Execute(() => commandeService.CancelAsync(id, ct), errorTitle: "Annulation impossible");
+    }
+
+    private async Task<IActionResult> Execute(
+        Func<Task<CommandeDto?>> action,
+        bool created = false,
+        string errorTitle = "Commande invalide")
+    {
         try
         {
-            var commande = await commandeService.ValidateAsync(id, ct);
-            return commande is null ? NotFound() : Ok(commande);
+            var commande = await action();
+            if (commande is null) return NotFound();
+            return created
+                ? CreatedAtAction(nameof(GetById), new { id = commande.Id }, commande)
+                : Ok(commande);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(Problem(ex.Message, "Validation impossible"));
+            return BadRequest(ApiProblem.Create(ex.Message, errorTitle, StatusCodes.Status400BadRequest));
         }
     }
-
-    private static ProblemDetails Problem(string detail, string title) =>
-        new() { Title = title, Detail = detail };
 }

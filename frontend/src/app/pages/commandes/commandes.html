@@ -24,7 +24,7 @@
             <th>Statut</th>
             <th>Lignes</th>
             <th class="col-right">Total HT</th>
-            <th class="col-right">TVA (19%)</th>
+            <th class="col-right">TVA</th>
             <th class="col-right">Total TTC</th>
             <th>Actions</th>
           </tr>
@@ -48,12 +48,14 @@
                 <button class="icon-btn" type="button" title="Voir le détail" (click)="details.set(order)">
                   &#128065;
                 </button>
-                @if (order.statut === 0) {
+                @if (canValidate(order.statut)) {
                   <button class="icon-btn validate" type="button" title="Valider la commande" (click)="validate(order)">
                     ✓
                   </button>
-                  <button class="icon-btn danger" type="button" title="Supprimer" (click)="requestDelete(order)">
-                    &#128465;
+                }
+                @if (canCancel(order.statut)) {
+                  <button class="icon-btn danger" type="button" title="Annuler la commande" (click)="requestCancel(order)">
+                    ✕
                   </button>
                 }
               </td>
@@ -63,7 +65,6 @@
       </table>
     </div>
 
-    <!-- ── Pagination ──────────────────────────── -->
     <div class="pagination" aria-label="Pagination des commandes">
       <span class="pagination-info">
         {{ totalCount() }} commande{{ totalCount() > 1 ? 's' : '' }} —
@@ -92,7 +93,6 @@
   }
 }
 
-<!-- ── Create modal ───────────────────────────────────────── -->
 @if (creating()) {
   <div class="modal-backdrop" (click)="closeCreate()">
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="create-order-title"
@@ -106,7 +106,6 @@
         <button class="modal-close" type="button" (click)="closeCreate()" aria-label="Fermer">×</button>
       </div>
 
-      <!-- Client -->
       <label class="form-label">
         <span class="field-label"><span class="required">*</span> Client</span>
         <select [ngModel]="selectedClientId()" (ngModelChange)="selectedClientId.set(+$event || null)">
@@ -117,7 +116,6 @@
         </select>
       </label>
 
-      <!-- Lignes -->
       <div class="lignes-header">
         <span class="field-label">Produits commandés</span>
         <button class="add-ligne-btn" type="button" (click)="addLigne()">+ Ajouter un produit</button>
@@ -175,7 +173,7 @@
           <strong>{{ draftTotalHt() | number : '1.2-2' }} TND</strong>
         </div>
         <div class="draft-row draft-tva">
-          <span>TVA (19%)</span>
+          <span>TVA</span>
           <span>{{ draftTva() | number : '1.2-2' }} TND</span>
         </div>
         <div class="draft-row draft-ttc">
@@ -198,7 +196,6 @@
   </div>
 }
 
-<!-- ── Detail modal ───────────────────────────────────────── -->
 @if (details(); as order) {
   <div class="modal-backdrop" (click)="details.set(null)">
     <section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-order-title"
@@ -249,7 +246,7 @@
             <td class="col-right">{{ order.totalHt | number : '1.2-2' }} TND</td>
           </tr>
           <tr>
-            <td colspan="4" class="col-right tfoot-label">TVA (19%)</td>
+            <td colspan="4" class="col-right tfoot-label">TVA</td>
             <td class="col-right tfoot-tva">{{ order.tva | number : '1.2-2' }} TND</td>
           </tr>
           <tr>
@@ -260,10 +257,15 @@
       </table>
 
       <div class="modal-actions">
-        @if (order.statut === 0) {
+        @if (canValidate(order.statut)) {
           <button class="action-btn validate-btn" type="button"
             (click)="validate(order); details.set(null)">
             ✓ Valider la commande
+          </button>
+        }
+        @if (canCancel(order.statut)) {
+          <button class="action-btn danger-solid" type="button" (click)="requestCancel(order)">
+            Annuler la commande
           </button>
         }
         <button class="action-btn primary" type="button" (click)="details.set(null)">Fermer</button>
@@ -272,17 +274,22 @@
   </div>
 }
 
-<!-- ── Delete confirm modal ──────────────────────────────── -->
-@if (pendingDelete(); as order) {
-  <div class="modal-backdrop" (click)="cancelDelete()">
-    <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-order-title"
+@if (pendingCancel(); as order) {
+  <div class="modal-backdrop" (click)="dismissCancel()">
+    <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title"
       (click)="$event.stopPropagation()">
-      <div class="confirm-icon">!</div>
-      <h2 id="delete-order-title">Supprimer cette commande ?</h2>
-      <p>La commande <strong>{{ order.numero }}</strong> sera définitivement supprimée.</p>
+      <div class="confirm-icon">✕</div>
+      <h2 id="cancel-order-title">Annuler cette commande ?</h2>
+      <p>
+        La commande <strong>{{ order.numero }}</strong> passera au statut <strong>Annulée</strong>.
+        @if (willRestoreStock(order.statut)) {
+          Le stock des produits sera remis à jour.
+        }
+        Cette action est irréversible.
+      </p>
       <div class="modal-actions">
-        <button class="action-btn" type="button" (click)="cancelDelete()">Annuler</button>
-        <button class="action-btn danger-solid" type="button" (click)="confirmDelete()">Supprimer</button>
+        <button class="action-btn" type="button" (click)="dismissCancel()">Retour</button>
+        <button class="action-btn danger-solid" type="button" (click)="confirmCancel()">Confirmer l'annulation</button>
       </div>
     </section>
   </div>

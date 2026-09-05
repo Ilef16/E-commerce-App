@@ -296,7 +296,6 @@
   }
 }
 
-/* ── State messages ────────────────────────────── */
 .state-message {
   padding: 3rem 0;
   text-align: center;
@@ -313,7 +312,6 @@
   }
 }
 
-/* ── Table ─────────────────────────────────────── */
 .table-wrapper {
   overflow-x: auto;
   border: 1px solid var(--line);
@@ -483,62 +481,12 @@
   }
 }
 
-.icon-action {
-  width: 2.15rem;
-  height: 2.15rem;
-  padding: 0;
-  font-size: 1rem;
-}
-
-.details-row,
-.edit-row {
-  background: var(--accent-soft);
-
-  td {
-    padding: 0.8rem 1rem;
-  }
-}
-
-.details-row td {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.25rem;
-  font-size: 0.85rem;
-}
-
-.edit-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 0.55rem;
-
-  input {
-    min-width: 0;
-    padding: 0.45rem 0.6rem;
-    border: 1px solid var(--line);
-    border-radius: 0.4rem;
-    background: var(--card);
-    color: var(--ink);
-    font: inherit;
-  }
-}
-
 @media (max-width: 600px) {
   .detail-list {
     grid-template-columns: 1fr;
   }
 }
 
-.edit-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.muted {
-  color: var(--muted);
-}
-
-/* ── Pagination ────────────────────────────────── */
 .pagination {
   display: flex;
   align-items: center;

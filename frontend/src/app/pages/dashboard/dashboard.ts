@@ -1,11 +1,12 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PageHeader } from '../../shared/components/page-header/page-header';
 import { DashboardService } from '../../services/dashboard.service';
 import { DashboardDto } from '../../dtos/dashboard.dto';
+import { LOW_STOCK_THRESHOLD } from '../../shared/constants/business.constants';
 
-type ApiState = 'checking' | 'online' | 'offline';
+type ApiState = 'online' | 'offline' | 'loading';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,21 +15,30 @@ type ApiState = 'checking' | 'online' | 'offline';
   styleUrl: './dashboard.scss',
 })
 export class Dashboard implements OnInit {
-
   private readonly dashboardService = inject(DashboardService);
 
-  readonly apiState = signal<ApiState>('checking');
+  readonly lowStockThreshold = LOW_STOCK_THRESHOLD;
+  readonly today = new Date();
+  readonly apiState = signal<ApiState>('loading');
   readonly stats = signal<DashboardDto | null>(null);
-  readonly statsError = signal(false);
+
+  readonly hasStockAlerts = computed(() => {
+    const current = this.stats();
+    return !!current && (current.produitsRupture > 0 || current.produitsStockFaible > 0);
+  });
 
   ngOnInit(): void {
-    
+    this.dashboardService.getStats().subscribe({
+      next: (stats) => {
+        this.stats.set(stats);
+        this.apiState.set('online');
+      },
+      error: () => this.apiState.set('offline'),
+    });
   }
 
-  private loadStats(): void {
-    this.dashboardService.getStats().subscribe({
-      next: (s) => this.stats.set(s),
-      error: () => this.statsError.set(true),
-    });
+  share(count: number): number {
+    const total = this.stats()?.totalCommandes ?? 0;
+    return total === 0 ? 0 : Math.round((count / total) * 100);
   }
 }
