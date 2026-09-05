@@ -1,7 +1,116 @@
-<app-page-header title="Produits" subtitle="Catalogue, tarifs et références."><button class="primary-btn" type="button" (click)="openCreate()">+ Ajouter un produit</button></app-page-header>
-@if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
-@if (loading()) { <p class="empty-message">Chargement...</p> }
-@if (!loading()) { <div class="table-card"><table><thead><tr><th>Identifiant</th><th>Référence</th><th>Nom du produit</th><th>Description</th><th>Prix unitaire HT</th><th>Stock</th><th>Date de création</th><th>Actions</th></tr></thead><tbody>@for (p of produits(); track p.id) { <tr><td>{{ p.id }}</td><td>{{ p.reference }}</td><td><strong>{{ p.libelle }}</strong></td><td>{{ p.description ?? '—' }}</td><td>{{ p.prixUnitaire | number : '1.2-2' }} TND</td><td>{{ p.stock }}</td><td>{{ p.createdAt | date : 'dd/MM/yyyy' }}</td><td class="actions"><button type="button" (click)="openDetails(p)">Détails</button><button type="button" (click)="openEdit(p)">Modifier</button><button class="danger" type="button" (click)="askDelete(p)">Supprimer</button></td></tr> } @empty { <tr><td colspan="8" class="empty-message">Aucun produit.</td></tr> }</tbody></table></div> }
-@if (creating() || editing() !== null) { <div class="modal-backdrop" (click)="closeModals()"><section class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"><h2>{{ editing() ? 'Modifier le produit' : 'Ajouter un produit' }}</h2><div class="form-grid"><label>Référence<input [(ngModel)]="draft().reference" /></label><label>Nom du produit<input [(ngModel)]="draft().libelle" /></label><label class="wide">Description<textarea [(ngModel)]="draft().description"></textarea></label><label>Prix unitaire HT<input type="number" min="0" step="0.01" [(ngModel)]="draft().prixUnitaire" /></label><label>Quantité en stock<input type="number" min="0" [(ngModel)]="draft().stock" /></label></div><div class="modal-actions"><button type="button" (click)="closeModals()">Annuler</button><button class="primary-btn" type="button" (click)="save()">Enregistrer</button></div></section></div> }
-@if (details(); as p) { <div class="modal-backdrop" (click)="closeModals()"><section class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"><h2>{{ p.libelle }}</h2><p><strong>Identifiant :</strong> {{ p.id }}</p><p><strong>Référence :</strong> {{ p.reference }}</p><p><strong>Description :</strong> {{ p.description ?? '—' }}</p><p><strong>Prix unitaire HT :</strong> {{ p.prixUnitaire | number : '1.2-2' }} TND</p><p><strong>Stock :</strong> {{ p.stock }}</p><p><strong>Créé le :</strong> {{ p.createdAt | date : 'dd/MM/yyyy' }}</p><button class="primary-btn" type="button" (click)="closeModals()">Fermer</button></section></div> }
-@if (deleting(); as p) { <div class="modal-backdrop" (click)="closeModals()"><section class="modal confirm" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"><h2>Supprimer le produit ?</h2><p>{{ p.libelle }} sera définitivement supprimé.</p><div class="modal-actions"><button type="button" (click)="closeModals()">Annuler</button><button class="danger" type="button" (click)="confirmDelete()">Supprimer</button></div></section></div> }
+<app-page-header title="Produits" subtitle="Catalogue, tarifs et références.">
+  <button class="primary-btn" type="button" (click)="openCreate()">+ Ajouter un produit</button>
+</app-page-header>
+
+@if (error()) {
+  <p class="error-message" role="alert">{{ error() }}</p>
+}
+
+@if (loading()) {
+  <p class="empty-message">Chargement...</p>
+}
+
+@if (!loading()) {
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Identifiant</th>
+          <th>Photo</th>
+          <th>Référence</th>
+          <th>Nom du produit</th>
+          <th>Description</th>
+          <th>Prix unitaire HT</th>
+          <th>Stock</th>
+          <th>Date de création</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (produit of produits(); track produit.id) {
+          <tr>
+            <td>{{ produit.id }}</td>
+            <td class="photo-cell">
+              @if (produit.photoUrl) {
+                <img class="product-thumb" [src]="photoUrl(produit.photoUrl)" [alt]="'Photo de ' + produit.libelle" />
+              } @else {
+                <span class="photo-placeholder" aria-label="Aucune photo">—</span>
+              }
+            </td>
+            <td>{{ produit.reference }}</td>
+            <td><strong>{{ produit.libelle }}</strong></td>
+            <td>{{ produit.description ?? '—' }}</td>
+            <td>{{ produit.prixUnitaire | number : '1.2-2' }} TND</td>
+            <td>{{ produit.stock }}</td>
+            <td>{{ produit.createdAt | date : 'dd/MM/yyyy' }}</td>
+            <td class="actions">
+              <button
+                class="menu-trigger"
+                type="button"
+                (click)="toggleActionMenu(produit.id)"
+                aria-label="Afficher les actions"
+                [attr.aria-expanded]="actionMenuId() === produit.id"
+              >⋮</button>
+              @if (actionMenuId() === produit.id) {
+                <div class="action-menu">
+                  <button type="button" (click)="openDetails(produit)">Détails</button>
+                  <button type="button" (click)="openEdit(produit)">Modifier</button>
+                  <button class="danger" type="button" (click)="askDelete(produit)">Supprimer</button>
+                </div>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="9" class="empty-message">Aucun produit.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination" aria-label="Pagination des produits">
+    <span>{{ totalCount() }} produit{{ totalCount() > 1 ? 's' : '' }} - page {{ page() }} / {{ totalPages() }}</span>
+    <div class="pagination-controls">
+      <button type="button" (click)="changePage(page() - 1)" [disabled]="page() <= 1" aria-label="Page précédente">‹</button>
+      <button class="current-page" type="button" aria-current="page">{{ page() }}</button>
+      <button type="button" (click)="changePage(page() + 1)" [disabled]="page() >= totalPages()" aria-label="Page suivante">›</button>
+    </div>
+  </div>
+}
+
+@if (creating() || editing() !== null) {
+  <div class="modal-backdrop" (click)="$event.target === $event.currentTarget && closeModals()">
+    <section class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <h2>{{ editing() ? 'Modifier le produit' : 'Ajouter un produit' }}</h2>
+      <div class="form-grid">
+        <label>Référence générée<input [(ngModel)]="draft().reference" readonly /></label>
+        <label>Nom du produit<input [(ngModel)]="draft().libelle" />@if (submitted() && !draft().libelle.trim()) { <small class="field-error">Le nom du produit est obligatoire.</small> }</label>
+        <label class="wide">Description<textarea [(ngModel)]="draft().description"></textarea></label>
+        <label>Prix unitaire HT<input type="number" min="0" step="0.01" [(ngModel)]="draft().prixUnitaire" />@if (submitted() && draft().prixUnitaire <= 0) { <small class="field-error">Le prix unitaire doit être supérieur à 0.</small> }</label>
+        <label>Quantité en stock<input type="number" min="0" [(ngModel)]="draft().stock" /></label>
+        <label class="wide">Photo du produit<input type="file" accept="image/*" (change)="selectPhoto($event)" />@if (photoPreview()) { <img class="photo-preview" [src]="photoPreview()" alt="Aperçu de la photo" /><button class="photo-remove" type="button" (click)="deletePhoto()">Supprimer la photo</button> }</label>
+      </div>
+      @if (formError()) { <p class="form-error" role="alert">{{ formError() }}</p> }
+      <div class="modal-actions"><button type="button" (click)="closeModals()">Annuler</button><button class="primary-btn" type="button" (click)="save()">Enregistrer</button></div>
+    </section>
+  </div>
+}
+
+@if (details(); as produit) {
+  <div class="modal-backdrop" (click)="$event.target === $event.currentTarget && closeModals()">
+    <section class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <h2>{{ produit.libelle }}</h2>
+      @if (produit.photoUrl) { <img class="product-photo" [src]="photoUrl(produit.photoUrl)" [alt]="'Photo de ' + produit.libelle" /> }
+      <p><strong>Identifiant :</strong> {{ produit.id }}</p><p><strong>Référence :</strong> {{ produit.reference }}</p><p><strong>Description :</strong> {{ produit.description ?? '—' }}</p><p><strong>Prix unitaire HT :</strong> {{ produit.prixUnitaire | number : '1.2-2' }} TND</p><p><strong>Stock :</strong> {{ produit.stock }}</p><p><strong>Créé le :</strong> {{ produit.createdAt | date : 'dd/MM/yyyy' }}</p>
+      <button class="primary-btn" type="button" (click)="closeModals()">Fermer</button>
+    </section>
+  </div>
+}
+
+@if (deleting(); as produit) {
+  <div class="modal-backdrop" (click)="$event.target === $event.currentTarget && closeModals()">
+    <section class="modal confirm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <h2>Supprimer le produit ?</h2><p>{{ produit.libelle }} sera définitivement supprimé.</p>
+      <div class="modal-actions"><button type="button" (click)="closeModals()">Annuler</button><button class="danger" type="button" (click)="confirmDelete()">Supprimer</button></div>
+    </section>
+  </div>
+}

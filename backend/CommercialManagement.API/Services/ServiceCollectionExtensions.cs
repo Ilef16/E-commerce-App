@@ -9,6 +9,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IClientService, ClientService>();
         services.AddScoped<IProduitService, ProduitService>();
         services.AddScoped<ICommandeService, CommandeService>();
+        services.AddScoped<IDashboardService, DashboardService>();
         return services;
     }
 }

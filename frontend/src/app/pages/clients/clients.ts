@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ClientService } from '../../services/client.service';
 import { ClientDto, ClientWriteDto } from '../../dtos/client.dto';
 import { PageHeader } from '../../shared/components/page-header/page-header';
+import { TUNISIA_WILAYAS } from '../../shared/constants/tunisia.constants';
 
 @Component({
   selector: 'app-clients',
@@ -13,37 +14,12 @@ import { PageHeader } from '../../shared/components/page-header/page-header';
   styleUrl: './clients.scss',
 })
 export class Clients implements OnInit {
-  readonly wilayasTunisie = [
-    'Ariana',
-    'Béja',
-    'Ben Arous',
-    'Bizerte',
-    'Gabès',
-    'Gafsa',
-    'Jendouba',
-    'Kairouan',
-    'Kasserine',
-    'Kébili',
-    'Le Kef',
-    'Mahdia',
-    'Manouba',
-    'Médenine',
-    'Monastir',
-    'Nabeul',
-    'Sfax',
-    'Sidi Bouzid',
-    'Siliana',
-    'Sousse',
-    'Tataouine',
-    'Tozeur',
-    'Tunis',
-    'Zaghouan',
-  ] as const;
+  readonly wilayasTunisie = TUNISIA_WILAYAS;
 
   clients = signal<ClientDto[]>([]);
   totalCount = signal(0);
   page = signal(1);
-  pageSize = signal(20);
+  pageSize = signal(10);
   search = signal('');
   loading = signal(false);
   error = signal<string | null>(null);
