@@ -1,0 +1,27 @@
+<app-page-header
+  title="Tableau de bord"
+  subtitle="Vue d’ensemble de l’activité commerciale. Les modules métier seront branchés au fur et à mesure."
+/>
+
+<section class="status" [class.online]="apiState() === 'online'" [class.offline]="apiState() === 'offline'">
+  @switch (apiState()) {
+    @case ('checking') {
+      <p>Vérification de l’API…</p>
+    }
+    @case ('online') {
+      <p>API connectée — <code>http://localhost:5150</code></p>
+    }
+    @default {
+      <p>API indisponible. Lancez le backend avec <code>dotnet run</code>.</p>
+    }
+  }
+</section>
+
+<section class="cards">
+  @for (card of cards; track card.label) {
+    <article>
+      <span>{{ card.label }}</span>
+      <strong>{{ card.value }}</strong>
+    </article>
+  }
+</section>

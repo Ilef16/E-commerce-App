@@ -1,0 +1,27 @@
+<div class="shell">
+  <aside class="sidebar">
+    <a routerLink="/" class="brand">
+      <span class="mark">CM</span>
+      <span>
+        <strong>Commercial</strong>
+        <small>Management</small>
+      </span>
+    </a>
+
+    <nav>
+      @for (link of links; track link.path) {
+        <a [routerLink]="link.path" routerLinkActive="active">{{ link.label }}</a>
+      }
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span>Espace commercial</span>
+      <span class="env">Développement</span>
+    </header>
+    <main>
+      <router-outlet />
+    </main>
+  </div>
+</div>

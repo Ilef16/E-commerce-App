@@ -1,0 +1,286 @@
+<app-page-header title="Clients" subtitle="Liste de tous les clients enregistrés.">
+  <div class="toolbar">
+    <input
+      class="search-input"
+      type="search"
+      placeholder="Rechercher (nom, prénom, email)…"
+      [ngModel]="search()"
+      (ngModelChange)="onSearch($event)"
+      aria-label="Rechercher un client"
+    />
+    <button class="add-client-btn" type="button" (click)="startCreate()">
+      + Ajouter client
+    </button>
+  </div>
+</app-page-header>
+
+@if (addingClient()) {
+  <div class="modal-backdrop" (click)="cancelCreate()">
+    <section
+      class="create-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-client-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="create-modal-header">
+        <div>
+          <span class="modal-kicker">Clients</span>
+          <h2 id="create-client-title">Ajouter un client</h2>
+        </div>
+        <button class="modal-close" type="button" (click)="cancelCreate()" aria-label="Fermer">
+          ×
+        </button>
+      </div>
+      <p class="modal-description">Renseignez les informations du nouveau client.</p>
+      <div class="create-form-grid">
+            <label>
+              <span class="field-label"><span>*</span> Identifiant</span>
+              <input [(ngModel)]="createDraft().identifiant" aria-label="Identifiant" placeholder="CLI-001" />
+              @if (createSubmitted() && createFieldErrors().identifiant) {
+                <small class="field-error">{{ createFieldErrors().identifiant }}</small>
+              }
+            </label>
+        <label>
+          <span class="field-label"><span>*</span> Nom</span>
+          <input [(ngModel)]="createDraft().nom" aria-label="Nom" placeholder="Nom" />
+          @if (createSubmitted() && createFieldErrors().nom) {
+            <small class="field-error">{{ createFieldErrors().nom }}</small>
+          }
+        </label>
+        <label>
+          Prénom
+          <input [(ngModel)]="createDraft().prenom" aria-label="Prénom" placeholder="Prénom" />
+        </label>
+        <label>
+          <span class="field-label"><span>*</span> Email</span>
+          <input [(ngModel)]="createDraft().email" aria-label="Email" placeholder="email@exemple.com" type="email" />
+          @if (createSubmitted() && createFieldErrors().email) {
+            <small class="field-error">{{ createFieldErrors().email }}</small>
+          }
+        </label>
+        <label>
+          Téléphone
+          <input [(ngModel)]="createDraft().telephone" aria-label="Téléphone" placeholder="+216 00 000 000" />
+        </label>
+        <label>
+          Adresse
+          <input [(ngModel)]="createDraft().adresse" aria-label="Adresse" placeholder="Adresse" />
+        </label>
+        <label>
+          Gouvernorat
+          <select [(ngModel)]="createDraft().ville" aria-label="Gouvernorat">
+            <option [ngValue]="null">Sélectionner un Gouvernorat</option>
+            @for (wilaya of wilayasTunisie; track wilaya) {
+              <option [ngValue]="wilaya">{{ wilaya }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Code postal
+          <input [(ngModel)]="createDraft().codePostal" aria-label="Code postal" placeholder="75001" />
+        </label>
+      </div>
+      @if (createFormError()) {
+        <p class="form-error" role="alert">{{ createFormError() }}</p>
+      }
+      <div class="modal-actions">
+        <button class="action-btn" type="button" (click)="cancelCreate()">Annuler</button>
+        <button class="action-btn primary" type="button" (click)="saveCreate()">
+          Enregistrer le client
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (loading()) {
+  <div class="state-message">Chargement…</div>
+}
+
+@if (error()) {
+  <div class="state-message error" role="alert">{{ error() }}</div>
+}
+
+@if (!loading() && !error()) {
+  @if (clients().length === 0) {
+    <div class="state-message">Aucun client trouvé.</div>
+  } @else {
+    <div class="table-wrapper">
+      <table class="data-table" aria-label="Liste des clients">
+        <thead>
+          <tr>
+                <th scope="col">Identifiant</th>
+            <th scope="col">Nom</th>
+            <th scope="col">Prénom / Raison sociale</th>
+            <th scope="col">Email</th>
+            <th scope="col">Téléphone</th>
+            <th scope="col">Adresse</th>
+            <th scope="col">Gouvernorat</th>
+            <th scope="col">Créé le</th>
+            <th scope="col" class="actions-header">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (client of clients(); track client.id) {
+            <tr>
+              <td class="cell-id">{{ client.identifiant }}</td>
+              <td class="cell-bold">{{ client.nom }}</td>
+              <td>{{ client.prenom ?? '—' }}</td>
+              <td><a [href]="'mailto:' + client.email">{{ client.email }}</a></td>
+              <td>{{ client.telephone ?? '—' }}</td>
+              <td>{{ client.adresse ?? '—' }}</td>
+              <td>{{ client.ville ?? '—' }}{{ client.codePostal ? ' (' + client.codePostal + ')' : '' }}</td>
+              <td class="cell-date">{{ client.createdAt | date : 'dd/MM/yyyy' }}</td>
+              <td class="actions-cell">
+                <button class="action-menu-trigger" type="button" (click)="toggleActionMenu(client.id)" title="Actions" aria-label="Afficher les actions" [attr.aria-expanded]="actionMenuClientId() === client.id">
+                  ⋮
+                </button>
+                @if (actionMenuClientId() === client.id) {
+                  <div class="action-menu">
+                    <button type="button" (click)="openDetails(client)"><span aria-hidden="true">&#128065;</span> Détails</button>
+                    <button type="button" (click)="startEdit(client)"><span aria-hidden="true">&#9998;</span> Modifier</button>
+                    <button class="danger" type="button" (click)="requestDelete(client)"><span aria-hidden="true">&#128465;</span> Supprimer</button>
+                  </div>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" aria-label="Pagination">
+      <span class="pagination-info">
+        {{ totalCount() }} client{{ totalCount() > 1 ? 's' : '' }} —
+        page {{ page() }} / {{ totalPages() }}
+      </span>
+      <div class="pagination-controls">
+        <button
+          class="page-btn"
+          (click)="goToPage(page() - 1)"
+          [disabled]="page() <= 1"
+          aria-label="Page précédente"
+        >‹</button>
+
+        @for (p of pages(); track p) {
+          <button
+            class="page-btn"
+            [class.active]="p === page()"
+            (click)="goToPage(p)"
+            [attr.aria-current]="p === page() ? 'page' : null"
+          >{{ p }}</button>
+        }
+
+        <button
+          class="page-btn"
+          (click)="goToPage(page() + 1)"
+          [disabled]="page() >= totalPages()"
+          aria-label="Page suivante"
+        >›</button>
+      </div>
+    </div>
+  }
+}
+
+@if (detailsClient(); as client) {
+  <div class="modal-backdrop" (click)="detailsClient.set(null); detailsClientId.set(null)">
+    <section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-client-title" (click)="$event.stopPropagation()">
+      <div class="create-modal-header">
+        <div>
+          <span class="modal-kicker">Fiche client</span>
+          <h2 id="detail-client-title">{{ client.nom }} {{ client.prenom ?? '' }}</h2>
+        </div>
+        <button class="modal-close" type="button" (click)="detailsClient.set(null); detailsClientId.set(null)" aria-label="Fermer">×</button>
+      </div>
+      <div class="detail-list">
+        <div><span>Identifiant</span><strong>{{ client.identifiant }}</strong></div>
+        <div><span>Nom complet</span><strong>{{ client.nom }} {{ client.prenom ?? '' }}</strong></div>
+        <div><span>Email</span><strong>{{ client.email }}</strong></div>
+        <div><span>Téléphone</span><strong>{{ client.telephone ?? '—' }}</strong></div>
+        <div><span>Adresse</span><strong>{{ client.adresse ?? '—' }}</strong></div>
+        <div><span>Gouvernorat</span><strong>{{ client.ville ?? '—' }}</strong></div>
+        <div><span>Code postal</span><strong>{{ client.codePostal ?? '—' }}</strong></div>
+        <div><span>Créé le</span><strong>{{ client.createdAt | date : 'dd/MM/yyyy' }}</strong></div>
+      </div>
+      <div class="detail-actions">
+        <button class="action-btn" type="button" (click)="startEdit(client)">
+          <span aria-hidden="true">&#9998;</span> Modifier
+        </button>
+        <button class="action-btn primary" type="button" (click)="detailsClient.set(null); detailsClientId.set(null)">
+          Fermer
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (editingClientId() !== null && editDraft(); as draft) {
+  <div class="modal-backdrop" (click)="cancelEdit()">
+    <section class="create-modal" role="dialog" aria-modal="true" aria-labelledby="edit-client-title" (click)="$event.stopPropagation()">
+      <div class="create-modal-header">
+        <div>
+          <span class="modal-kicker">Fiche client</span>
+          <h2 id="edit-client-title">Modifier le client</h2>
+        </div>
+        <button class="modal-close" type="button" (click)="cancelEdit()" aria-label="Fermer">×</button>
+      </div>
+      <div class="create-form-grid">
+        <label>
+          <span class="field-label"><span>*</span> Identifiant</span>
+          <input [(ngModel)]="draft.identifiant" aria-label="Identifiant" placeholder="CLI-001" />
+          @if (editSubmitted() && editFieldErrors().identifiant) {
+            <small class="field-error">{{ editFieldErrors().identifiant }}</small>
+          }
+        </label>
+        <label>
+          <span class="field-label"><span>*</span> Nom</span>
+          <input [(ngModel)]="draft.nom" aria-label="Nom" />
+          @if (editSubmitted() && editFieldErrors().nom) {
+            <small class="field-error">{{ editFieldErrors().nom }}</small>
+          }
+        </label>
+        <label>Prénom<input [(ngModel)]="draft.prenom" aria-label="Prénom" /></label>
+        <label>
+          <span class="field-label"><span>*</span> Email</span>
+          <input [(ngModel)]="draft.email" aria-label="Email" type="email" />
+          @if (editSubmitted() && editFieldErrors().email) {
+            <small class="field-error">{{ editFieldErrors().email }}</small>
+          }
+        </label>
+        <label>Téléphone<input [(ngModel)]="draft.telephone" aria-label="Téléphone" /></label>
+        <label>Adresse<input [(ngModel)]="draft.adresse" aria-label="Adresse" /></label>
+        <label>Gouvernorat
+          <select [(ngModel)]="draft.ville" aria-label="Gouvernorat">
+            <option [ngValue]="null">Sélectionner une wilaya</option>
+            @for (wilaya of wilayasTunisie; track wilaya) {
+              <option [ngValue]="wilaya">{{ wilaya }}</option>
+            }
+          </select>
+        </label>
+        <label>Code postal<input [(ngModel)]="draft.codePostal" aria-label="Code postal" /></label>
+      </div>
+      @if (editFormError()) {
+        <p class="form-error" role="alert">{{ editFormError() }}</p>
+      }
+      <div class="modal-actions">
+        <button class="action-btn" type="button" (click)="cancelEdit()">Annuler</button>
+        <button class="action-btn primary" type="button" (click)="saveEdit(editingClientId()!)">Enregistrer</button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (pendingDeleteClient(); as client) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-client-title" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">!</div>
+      <h2 id="delete-client-title">Supprimer ce client ?</h2>
+      <p>Le client <strong>{{ client.nom }} {{ client.prenom ?? '' }}</strong> sera définitivement supprimé.</p>
+      <div class="modal-actions">
+        <button class="action-btn" type="button" (click)="cancelDelete()">Annuler</button>
+        <button class="action-btn danger solid-danger" type="button" (click)="confirmDelete()">Supprimer</button>
+      </div>
+    </section>
+  </div>
+}

@@ -1,0 +1,50 @@
+.status {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--card);
+
+  p {
+    margin: 0;
+  }
+
+  code {
+    font-size: 0.9em;
+  }
+
+  &.online {
+    border-color: #9fd4bb;
+    background: #f1faf5;
+  }
+
+  &.offline {
+    border-color: #e8b4b4;
+    background: #fdf4f4;
+  }
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+article {
+  padding: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: var(--card);
+
+  span {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  strong {
+    display: block;
+    margin-top: 0.55rem;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.8rem;
+  }
+}
