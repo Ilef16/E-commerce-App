@@ -1,0 +1,289 @@
+<app-page-header title="Commandes" subtitle="Suivi des commandes et du pipeline commercial.">
+  <button class="add-btn" type="button" (click)="openCreate()">+ Nouvelle commande</button>
+</app-page-header>
+
+@if (error()) {
+  <div class="state-message error" role="alert">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <div class="state-message">Chargement…</div>
+}
+
+@if (!loading()) {
+  @if (orders().length === 0 && !error()) {
+    <div class="state-message">Aucune commande enregistrée.</div>
+  } @else {
+    <div class="table-wrapper">
+      <table class="data-table" aria-label="Liste des commandes">
+        <thead>
+          <tr>
+            <th>Numéro</th>
+            <th>Client</th>
+            <th>Date</th>
+            <th>Statut</th>
+            <th>Lignes</th>
+            <th class="col-right">Total HT</th>
+            <th class="col-right">TVA (19%)</th>
+            <th class="col-right">Total TTC</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders(); track order.id) {
+            <tr>
+              <td class="cell-mono">{{ order.numero }}</td>
+              <td class="cell-bold">{{ order.clientNom }}</td>
+              <td class="cell-date">{{ order.dateCommande | date : 'dd/MM/yyyy' }}</td>
+              <td>
+                <span class="badge" [class]="statusClass(order.statut)">
+                  {{ statusLabel(order.statut) }}
+                </span>
+              </td>
+              <td class="cell-muted">{{ order.lignes.length }} article{{ order.lignes.length > 1 ? 's' : '' }}</td>
+              <td class="col-right">{{ order.totalHt | number : '1.2-2' }} TND</td>
+              <td class="col-right cell-muted">{{ order.tva | number : '1.2-2' }} TND</td>
+              <td class="col-right cell-bold">{{ order.totalTtc | number : '1.2-2' }} TND</td>
+              <td class="actions-cell">
+                <button class="icon-btn" type="button" title="Voir le détail" (click)="details.set(order)">
+                  &#128065;
+                </button>
+                @if (order.statut === 0) {
+                  <button class="icon-btn validate" type="button" title="Valider la commande" (click)="validate(order)">
+                    ✓
+                  </button>
+                  <button class="icon-btn danger" type="button" title="Supprimer" (click)="requestDelete(order)">
+                    &#128465;
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Pagination ──────────────────────────── -->
+    <div class="pagination" aria-label="Pagination des commandes">
+      <span class="pagination-info">
+        {{ totalCount() }} commande{{ totalCount() > 1 ? 's' : '' }} —
+        page {{ page() }} / {{ totalPages() }}
+      </span>
+      <div class="pagination-controls">
+        <button class="page-btn" type="button"
+          (click)="goToPage(page() - 1)"
+          [disabled]="page() <= 1"
+          aria-label="Page précédente">‹</button>
+
+        @for (p of pages(); track p) {
+          <button class="page-btn" type="button"
+            [class.active]="p === page()"
+            (click)="goToPage(p)"
+            [attr.aria-current]="p === page() ? 'page' : null">{{ p }}</button>
+        }
+
+        <button class="page-btn" type="button"
+          (click)="goToPage(page() + 1)"
+          [disabled]="page() >= totalPages()"
+          aria-label="Page suivante">›</button>
+      </div>
+    </div>
+
+  }
+}
+
+<!-- ── Create modal ───────────────────────────────────────── -->
+@if (creating()) {
+  <div class="modal-backdrop" (click)="closeCreate()">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="create-order-title"
+      (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          <span class="modal-kicker">Commandes</span>
+          <h2 id="create-order-title">Nouvelle commande</h2>
+        </div>
+        <button class="modal-close" type="button" (click)="closeCreate()" aria-label="Fermer">×</button>
+      </div>
+
+      <!-- Client -->
+      <label class="form-label">
+        <span class="field-label"><span class="required">*</span> Client</span>
+        <select [ngModel]="selectedClientId()" (ngModelChange)="selectedClientId.set(+$event || null)">
+          <option [ngValue]="null">Sélectionner un client…</option>
+          @for (client of clients(); track client.id) {
+            <option [value]="client.id">{{ client.nom }} {{ client.prenom ?? '' }} — {{ client.email }}</option>
+          }
+        </select>
+      </label>
+
+      <!-- Lignes -->
+      <div class="lignes-header">
+        <span class="field-label">Produits commandés</span>
+        <button class="add-ligne-btn" type="button" (click)="addLigne()">+ Ajouter un produit</button>
+      </div>
+
+      <div class="lignes-list">
+        @for (ligne of lignes(); track $index; let i = $index) {
+          <div class="ligne-row">
+            <select class="ligne-select"
+              [ngModel]="ligne.produit?.id ?? ''"
+              (ngModelChange)="setLigneProduit(i, $event)"
+              aria-label="Produit">
+              <option value="">Sélectionner un produit…</option>
+              @for (p of produits(); track p.id) {
+                <option [value]="p.id">{{ p.libelle }}</option>
+              }
+            </select>
+
+            @if (ligne.produit) {
+              <span class="ligne-info stock">
+                Stock : {{ ligne.produit.stock }}
+              </span>
+              <span class="ligne-info price">
+                {{ ligne.produit.prixUnitaire | number : '1.2-2' }} TND HT
+              </span>
+            } @else {
+              <span class="ligne-info empty">—</span>
+              <span class="ligne-info empty">—</span>
+            }
+
+            <input class="ligne-qty"
+              type="number"
+              min="1"
+              [max]="ligne.produit?.stock ?? 9999"
+              [ngModel]="ligne.quantite"
+              (ngModelChange)="setLigneQuantite(i, +$event)"
+              aria-label="Quantité" />
+
+            <span class="ligne-total">
+              {{ (ligne.produit ? ligne.produit.prixUnitaire * ligne.quantite : 0) | number : '1.2-2' }} TND
+            </span>
+
+            @if (lignes().length > 1) {
+              <button class="ligne-remove" type="button" (click)="removeLigne(i)" aria-label="Supprimer la ligne">
+                ×
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="draft-totals">
+        <div class="draft-row">
+          <span>Total HT</span>
+          <strong>{{ draftTotalHt() | number : '1.2-2' }} TND</strong>
+        </div>
+        <div class="draft-row draft-tva">
+          <span>TVA (19%)</span>
+          <span>{{ draftTva() | number : '1.2-2' }} TND</span>
+        </div>
+        <div class="draft-row draft-ttc">
+          <span>Total TTC</span>
+          <strong>{{ draftTotalTtc() | number : '1.2-2' }} TND</strong>
+        </div>
+      </div>
+
+      @if (createError()) {
+        <p class="form-error" role="alert">{{ createError() }}</p>
+      }
+
+      <div class="modal-actions">
+        <button class="action-btn" type="button" (click)="closeCreate()">Annuler</button>
+        <button class="action-btn primary" type="button" (click)="submitCreate()">
+          Créer la commande
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+<!-- ── Detail modal ───────────────────────────────────────── -->
+@if (details(); as order) {
+  <div class="modal-backdrop" (click)="details.set(null)">
+    <section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-order-title"
+      (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          <span class="modal-kicker">Détail commande</span>
+          <h2 id="detail-order-title">{{ order.numero }}</h2>
+        </div>
+        <button class="modal-close" type="button" (click)="details.set(null)" aria-label="Fermer">×</button>
+      </div>
+
+      <div class="detail-meta">
+        <div><span>Client</span><strong>{{ order.clientNom }}</strong></div>
+        <div><span>Date</span><strong>{{ order.dateCommande | date : 'dd/MM/yyyy' }}</strong></div>
+        <div>
+          <span>Statut</span>
+          <span class="badge" [class]="statusClass(order.statut)">{{ statusLabel(order.statut) }}</span>
+        </div>
+        <div><span>Créée le</span><strong>{{ order.createdAt | date : 'dd/MM/yyyy HH:mm' }}</strong></div>
+      </div>
+
+      <table class="detail-table" aria-label="Lignes de commande">
+        <thead>
+          <tr>
+            <th>Référence</th>
+            <th>Produit</th>
+            <th class="col-right">Qté</th>
+            <th class="col-right">P.U.</th>
+            <th class="col-right">Total ligne</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ligne of order.lignes; track ligne.id) {
+            <tr>
+              <td class="cell-mono">{{ ligne.referenceProduit }}</td>
+              <td>{{ ligne.libelleProduit }}</td>
+              <td class="col-right">{{ ligne.quantite }}</td>
+              <td class="col-right">{{ ligne.prixUnitaire | number : '1.2-2' }} TND</td>
+              <td class="col-right cell-bold">{{ ligne.totalLigne | number : '1.2-2' }} TND</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="col-right tfoot-label">Total HT</td>
+            <td class="col-right">{{ order.totalHt | number : '1.2-2' }} TND</td>
+          </tr>
+          <tr>
+            <td colspan="4" class="col-right tfoot-label">TVA (19%)</td>
+            <td class="col-right tfoot-tva">{{ order.tva | number : '1.2-2' }} TND</td>
+          </tr>
+          <tr>
+            <td colspan="4" class="col-right tfoot-label">Total TTC</td>
+            <td class="col-right tfoot-total">{{ order.totalTtc | number : '1.2-2' }} TND</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="modal-actions">
+        @if (order.statut === 0) {
+          <button class="action-btn validate-btn" type="button"
+            (click)="validate(order); details.set(null)">
+            ✓ Valider la commande
+          </button>
+        }
+        <button class="action-btn primary" type="button" (click)="details.set(null)">Fermer</button>
+      </div>
+    </section>
+  </div>
+}
+
+<!-- ── Delete confirm modal ──────────────────────────────── -->
+@if (pendingDelete(); as order) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-order-title"
+      (click)="$event.stopPropagation()">
+      <div class="confirm-icon">!</div>
+      <h2 id="delete-order-title">Supprimer cette commande ?</h2>
+      <p>La commande <strong>{{ order.numero }}</strong> sera définitivement supprimée.</p>
+      <div class="modal-actions">
+        <button class="action-btn" type="button" (click)="cancelDelete()">Annuler</button>
+        <button class="action-btn danger-solid" type="button" (click)="confirmDelete()">Supprimer</button>
+      </div>
+    </section>
+  </div>
+}

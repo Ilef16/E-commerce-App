@@ -13,6 +13,5 @@ export class Layout {
     { path: '/clients', label: 'Clients' },
     { path: '/produits', label: 'Produits' },
     { path: '/commandes', label: 'Commandes' },
-    { path: '/factures', label: 'Factures' },
   ];
 }

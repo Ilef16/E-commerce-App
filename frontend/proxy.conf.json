@@ -3,5 +3,10 @@
     "target": "http://localhost:5150",
     "secure": false,
     "changeOrigin": true
+  },
+  "/uploads": {
+    "target": "http://localhost:5150",
+    "secure": false,
+    "changeOrigin": true
   }
 }
