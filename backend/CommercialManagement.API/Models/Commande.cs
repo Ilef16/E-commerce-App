@@ -10,6 +10,8 @@ public class Commande : EntityBase
     public StatutCommande Statut { get; set; } = StatutCommande.Brouillon;
     public decimal Total { get; set; }
 
+    public decimal Remise { get; set; } 
+
     public Client Client { get; set; } = null!;
     public ICollection<LigneCommande> Lignes { get; set; } = [];
 

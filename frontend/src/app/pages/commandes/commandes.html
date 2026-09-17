@@ -26,6 +26,7 @@
             <th class="col-right">Total HT</th>
             <th class="col-right">TVA</th>
             <th class="col-right">Total TTC</th>
+            <th class="col-right">Remise</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -43,7 +44,9 @@
               <td class="cell-muted">{{ order.lignes.length }} article{{ order.lignes.length > 1 ? 's' : '' }}</td>
               <td class="col-right">{{ order.totalHt | number : '1.2-2' }} TND</td>
               <td class="col-right cell-muted">{{ order.tva | number : '1.2-2' }} TND</td>
-              <td class="col-right cell-bold">{{ order.totalTtc | number : '1.2-2' }} TND</td>
+              
+              <!-- <td class="col-right cell-bold">{{ order.totalTtc | number : '1.2-2' }} TND</td> -->
+              <td  class="col-right cell-bold">{{ order.Remise | number : '1.2-2' }} </td>
               <td class="actions-cell">
                 <button class="icon-btn" type="button" title="Voir le détail" (click)="details.set(order)">
                   &#128065;
@@ -180,6 +183,10 @@
           <span>Total TTC</span>
           <strong>{{ draftTotalTtc() | number : '1.2-2' }} TND</strong>
         </div>
+         <div class="draft-row draft-ttc">
+          <span>Remise</span>
+          <strong>{{ dtRemise() | number : '1.2-2' }} </strong>
+        </div>
       </div>
 
       @if (createError()) {
@@ -252,6 +259,10 @@
           <tr>
             <td colspan="4" class="col-right tfoot-label">Total TTC</td>
             <td class="col-right tfoot-total">{{ order.totalTtc | number : '1.2-2' }} TND</td>
+          </tr>
+          <tr>
+            <td colspan="4" class="col-right tfoot-label">Remise</td>
+            <td class="col-right tfoot-total">{{ order.Remise | number : '1.2-2' }} </td>
           </tr>
         </tfoot>
       </table>

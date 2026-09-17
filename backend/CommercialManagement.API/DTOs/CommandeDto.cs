@@ -45,7 +45,9 @@ public class CommandeDto
     public decimal TotalHt { get; init; }
     public decimal Tva { get; init; }
     public decimal TotalTtc { get; init; }
+    public decimal Remise { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public List<CommandeLigneDto> Lignes { get; init; } = [];
+    public List<TvaDto> Tvas { get; init;} = new List<TvaDto>();
 }
