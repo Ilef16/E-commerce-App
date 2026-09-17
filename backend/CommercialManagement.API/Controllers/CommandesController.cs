@@ -37,9 +37,9 @@ public class CommandesController(ICommandeService commandeService) : ControllerB
     [HttpPost]
     [ProducesResponseType(typeof(CommandeDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create(CommandeWriteDto input, CancellationToken ct)
+    public async Task<IActionResult> Create(CommandeWriteDto input,TvaWriteDto input1, CancellationToken ct)
     {
-        return await Execute(async () => await commandeService.CreateAsync(input, ct), created: true);
+        return await Execute(async () => await commandeService.CreateAsync(input, input1, ct), created: true);
     }
 
     [HttpPut("{id:int}")]

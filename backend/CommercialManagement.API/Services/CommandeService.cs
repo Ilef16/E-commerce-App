@@ -35,7 +35,7 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
         return commande is null ? null : ToDto(commande);
     }
 
-    public async Task<CommandeDto> CreateAsync(CommandeWriteDto input, CancellationToken ct = default)
+    public async Task<CommandeDto> CreateAsync(CommandeWriteDto input,TvaWriteDto input1,CancellationToken ct = default ) 
     {
         var commande = new Commande
         {
@@ -43,10 +43,23 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
             ClientId     = input.ClientId,
             DateCommande = input.DateCommande ?? DateTime.UtcNow,
         };
+        var tva = new Tva
+        {
+            Libelle = input1.Libelle,
+            Type = input1.Type,
+            Valeur= input1.Valeur,
+            Etat = input1.Etat
+        };
 
-        await ApplyLinesAsync(commande, input.Lignes, ct);
+        if (tva.Type < 0)
+            throw new InvalidOperationException("type ne peut pas etre inférieur a 0");
+
+    
+        
+        await ApplyLinesAsync(commande, input.Lignes ,ct);
 
         context.Commandes.Add(commande);
+        //context.tvas.Add(tva);
         await context.SaveChangesAsync(ct);
 
         return ToDto(await BuildQuery().FirstAsync(c => c.Id == commande.Id, ct));
@@ -106,6 +119,7 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
                     $"(disponible : {ligne.Produit.Stock}, demandé : {ligne.Quantite}).");
         }
 
+
         foreach (var ligne in commande.Lignes)
             ligne.Produit.Stock -= ligne.Quantite;
 
@@ -130,6 +144,15 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
         if (commande.Statut is not (StatutCommande.Brouillon or StatutCommande.Validee))
             throw new InvalidOperationException("Cette commande ne peut pas être annulée.");
 
+        if (commande.Remise > commande.Total)
+        {
+            throw new InvalidOperationException("Remise ne doit pas etre supérieur au total");
+        }
+        if (commande.Remise<0)
+        {
+            throw new InvalidOperationException("Remise doit etre positive");
+        }
+
         await using var transaction = await context.Database.BeginTransactionAsync(ct);
 
         if (commande.Statut == StatutCommande.Validee)
@@ -142,7 +165,14 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
                     .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.Stock, p => p.Stock + quantite), ct);
             }
         }
-
+       /* if(commande.Remise < 0)
+        {
+            var re = commande.Remise;
+            re.CompareTo(commande.Total);
+            await context.tva
+            .where(re => re.Id == commande.Id)
+            .ExecuteUpdateAsync()
+        }*/
         await context.Commandes
             .Where(c => c.Id == id)
             .ExecuteUpdateAsync(
@@ -164,16 +194,25 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
 
     private async Task ApplyLinesAsync(
         Commande commande,
+         
         IEnumerable<CommandeLigneWriteDto> inputs,
         CancellationToken ct)
     {
         var lines = inputs.ToList();
-
+ 
         if (lines.Count == 0)
             throw new InvalidOperationException("Une commande doit contenir au moins une ligne.");
 
         if (!await context.Clients.AnyAsync(c => c.Id == commande.ClientId, ct))
             throw new InvalidOperationException("Le client indiqué est introuvable.");
+
+
+        /* 
+        ici des controles pour le tax , remise 
+        abscence de tax
+        abscence de remise 
+        des valeurs invalides
+        */
 
         var productIds = lines.Select(l => l.ProduitId).Distinct().ToList();
         var products = await context.Produits
@@ -195,13 +234,17 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
                     $"Stock insuffisant pour « {product.Libelle} » " +
                     $"(disponible : {product.Stock}, demandé : {line.Quantite}).");
 
+
             commande.Lignes.Add(new LigneCommande
             {
                 ProduitId    = product.Id,
                 Produit      = product,
                 Quantite     = line.Quantite,
                 PrixUnitaire = product.PrixUnitaire,
-            });
+            }
+
+           
+            );
         }
 
         commande.RecalculerTotal();
@@ -213,10 +256,39 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
         return $"CMD-{DateTime.UtcNow:yyyyMMdd}-{nextId:0000}";
     }
 
-    private static CommandeDto ToDto(Commande commande)
+    
+ /*   public async Task<TvaDto> CreateTVA(TvaWriteDto input, CancellationToken ct = default)
     {
+        var libelle = input.Libelle.Trim();
+       
+
+        var Tva = new Tva();
+        context.tvas.Add(Tva);
+        await context.SaveChangesAsync(ct);
+    }*/
+   /* private static void TvaDto (Tva tva , TvaWriteDto tvaWriteDto)
+    {
+       return new TvaDto
+       {
+           tva.Libelle = tvaWriteDto.Libelle,
+           tva.Type = tva.Type,
+           tva.Valeur = tvaWriteDto.Valeur,
+           tva.Etat = tvaWriteDto.Etat,
+       };*/
+       /* return new TvaDto
+        {
+            Libelle= tva.Libelle,
+            Type= tva.Type,
+            Valeur= tva.valeur,
+            Etat= tva.Etat,
+        };*/
+    
+    private static CommandeDto ToDto(Commande commande)
+    {   
         var totalHt  = commande.Total;
-        var tva      = Math.Round(totalHt * BusinessConstants.TvaRate, 2);
+        // var tva      = Math.Round(totalHt * BusinessConstants.TvaRate, 2);
+        var Remise = commande.Remise;
+
 
         return new CommandeDto
         {
@@ -227,8 +299,10 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
             DateCommande = commande.DateCommande,
             Statut       = commande.Statut,
             TotalHt      = totalHt,
-            Tva          = tva,
-            TotalTtc     = totalHt + tva,
+            // Tva          = tva,
+            // TotalTtc     = totalHt + tva,
+            
+            Remise       = commande.Remise,
             CreatedAt    = commande.CreatedAt,
             UpdatedAt    = commande.UpdatedAt,
             Lignes       = commande.Lignes.Select(l => new CommandeLigneDto
@@ -241,6 +315,7 @@ public class CommandeService(ApplicationDbContext context) : ICommandeService
                 PrixUnitaire     = l.PrixUnitaire,
                 TotalLigne       = l.PrixUnitaire * l.Quantite,
             }).ToList(),
+             
         };
     }
 }

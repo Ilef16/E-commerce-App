@@ -19,3 +19,13 @@ export const ORDER_STATUS_LABELS: Record<number, string> = {
   [OrderStatus.Livree]: 'Livrée',
   [OrderStatus.Annulee]: 'Annulée',
 };
+
+export const Etattaxe = {
+  active: 1,
+  inactive:0,
+} as const;
+export type Etattaxe = (typeof Etattaxe )[keyof typeof Etattaxe] 
+export const Etat: Record<number, string> ={
+  [Etattaxe.active]:'active',
+  [Etattaxe.inactive]: 'inactive',
+};

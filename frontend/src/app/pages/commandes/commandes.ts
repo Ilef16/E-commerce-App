@@ -9,7 +9,7 @@ import { ProduitService } from '../../services/produit.service';
 import { CommandeDto, CommandeLigneWriteDto, CommandeWriteDto } from '../../dtos/commande.dto';
 import { ClientDto } from '../../dtos/client.dto';
 import { ProduitDto } from '../../dtos/produit.dto';
-import { DEFAULT_PAGE_SIZE, LOOKUP_PAGE_SIZE, ORDER_STATUS_LABELS, OrderStatus, TVA_RATE } from '../../shared/constants/business.constants';
+import { DEFAULT_PAGE_SIZE, Etattaxe, LOOKUP_PAGE_SIZE, ORDER_STATUS_LABELS, OrderStatus, TVA_RATE } from '../../shared/constants/business.constants';
 import { apiErrorMessage } from '../../shared/utils/http-error';
 
 interface LigneDraft {
@@ -30,7 +30,7 @@ export class Commandes implements OnInit {
   readonly pageSize = DEFAULT_PAGE_SIZE;
   loading = signal(false);
   error = signal('');
-
+  Remise = signal<CommandeDto | null>(null);
   totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / this.pageSize)));
 
   details = signal<CommandeDto | null>(null);
@@ -56,6 +56,21 @@ export class Commandes implements OnInit {
     Math.round((this.draftTotalHt() + this.draftTva()) * 100) / 100
   );
 
+  
+ /* if(draftTotalTtc > '500' )
+  {
+    Remise = draftTotalTtc * 0.2 * ;
+  }
+    else
+      if(draftTotalTtc > 100)
+      { Remise = draftTotalTtc * 0.05;
+    }
+  }
+  /* Remise selon pourcentage */ 
+  dfRemise = computed(()=>
+
+   Math.round((this.draftTotalTtc() * 0.2 *100))
+  )
   constructor(
     private readonly commandeService: CommandeService,
     private readonly clientService: ClientService,
@@ -92,6 +107,13 @@ export class Commandes implements OnInit {
   statusLabel(status: number | string): string {
     return ORDER_STATUS_LABELS[this.toStatus(status)] ?? 'Inconnu';
   }
+
+  /*EtatLabel(Etat: boolean ): void {
+    return Etat[this.toEtattaxe(Etat)] ?? 'Inconnu';
+  }
+   EtatClass(Etat: boolean): void {
+    return ['Inactive', 'Active'][this.toEtattaxe(Etat)] ?? '';
+  }*/
 
   statusClass(status: number): string {
     return ['badge-draft', 'badge-validated', 'badge-delivered', 'badge-cancelled'][this.toStatus(status)] ?? '';
@@ -172,7 +194,8 @@ export class Commandes implements OnInit {
       next: () => { this.closeCreate(); this.load(); },
       error: (e: HttpErrorResponse) => this.createError.set(apiErrorMessage(e, 'Impossible de créer la commande.')),
     });
-  }
+
+  } 
 
   validate(order: CommandeDto): void {
     this.commandeService.validate(order.id).subscribe({
@@ -215,5 +238,15 @@ export class Commandes implements OnInit {
       Annulee: OrderStatus.Annulee,
     };
     return named[status] ?? Number(status);
+  }
+
+  
+  private toEtattaxe (Etat : boolean ) : boolean{
+  if(typeof Etat ==='boolean') return Etat;
+  const named: Record< any , any> = {
+    inactive : Etattaxe.inactive,
+    active : Etattaxe.active,
+  };
+  return named[Etat] ?? Boolean(Etat);
   }
 }
