@@ -1,21 +1,45 @@
-<app-page-header title="Commandes" subtitle="Suivi des commandes et du pipeline commercial.">
-  <button class="add-btn" type="button" (click)="openCreate()">+ Nouvelle commande</button>
+<app-page-header
+  title="Commandes"
+  subtitle="Suivi des commandes et du pipeline commercial."
+>
+  <button
+    class="add-btn"
+    type="button"
+    (click)="openCreate()"
+  >
+    + Nouvelle commande
+  </button>
 </app-page-header>
 
 @if (error()) {
-  <div class="state-message error" role="alert">{{ error() }}</div>
+  <div class="state-message error" role="alert">
+    {{ error() }}
+  </div>
 }
 
 @if (loading()) {
-  <div class="state-message">Chargement…</div>
+  <div class="state-message">
+    Chargement…
+  </div>
 }
 
 @if (!loading()) {
+
   @if (orders().length === 0 && !error()) {
-    <div class="state-message">Aucune commande enregistrée.</div>
+
+    <div class="state-message">
+      Aucune commande enregistrée.
+    </div>
+
   } @else {
+
     <div class="table-wrapper">
-      <table class="data-table" aria-label="Liste des commandes">
+
+      <table
+        class="data-table"
+        aria-label="Liste des commandes"
+      >
+
         <thead>
           <tr>
             <th>Numéro</th>
@@ -27,207 +51,619 @@
             <th class="col-right">TVA</th>
             <th class="col-right">Total TTC</th>
             <th class="col-right">Remise</th>
+            <th class="col-right">Total final</th>
             <th>Actions</th>
           </tr>
         </thead>
+
         <tbody>
-          @for (order of orders(); track order.id) {
+
+          @for (
+            order of orders();
+            track order.id
+          ) {
+
             <tr>
-              <td class="cell-mono">{{ order.numero }}</td>
-              <td class="cell-bold">{{ order.clientNom }}</td>
-              <td class="cell-date">{{ order.dateCommande | date : 'dd/MM/yyyy' }}</td>
+
+              <td class="cell-mono">
+                {{ order.numero }}
+              </td>
+
+              <td class="cell-bold">
+                {{ order.clientNom }}
+              </td>
+
+              <td class="cell-date">
+                {{ order.dateCommande | date : 'dd/MM/yyyy' }}
+              </td>
+
               <td>
-                <span class="badge" [class]="statusClass(order.statut)">
+                <span
+                  class="badge"
+                  [class]="statusClass(order.statut)"
+                >
                   {{ statusLabel(order.statut) }}
                 </span>
               </td>
-              <td class="cell-muted">{{ order.lignes.length }} article{{ order.lignes.length > 1 ? 's' : '' }}</td>
-              <td class="col-right">{{ order.totalHt | number : '1.2-2' }} TND</td>
-              <td class="col-right cell-muted">{{ order.tva | number : '1.2-2' }} TND</td>
-              
-              <!-- <td class="col-right cell-bold">{{ order.totalTtc | number : '1.2-2' }} TND</td> -->
-              <td  class="col-right cell-bold">{{ order.Remise | number : '1.2-2' }} </td>
+
+              <td class="cell-muted">
+                {{ order.lignes.length }}
+                article{{ order.lignes.length > 1 ? 's' : '' }}
+              </td>
+
+              <td class="col-right">
+                {{ order.totalHt | number : '1.2-2' }} TND
+              </td>
+
+              <td class="col-right cell-muted">
+                {{ getMontantTva(order) | number : '1.2-2' }} TND
+                <small>({{ order.tva }}%)</small>
+              </td>
+
+              <td class="col-right cell-bold">
+                {{ order.totalTtc | number : '1.2-2' }} TND
+              </td>
+
+              <td class="col-right">
+                <span>{{ order.remise }}%</span>
+                <br />
+                <small>
+                  -
+                  {{ getMontantRemise(order) | number : '1.2-2' }}
+                  TND
+                </small>
+              </td>
+
+              <td class="col-right cell-bold">
+                {{ getTotalApresRemise(order) | number : '1.2-2' }}
+                TND
+              </td>
+
               <td class="actions-cell">
-                <button class="icon-btn" type="button" title="Voir le détail" (click)="details.set(order)">
+
+                <button
+                  class="icon-btn"
+                  type="button"
+                  title="Voir le détail"
+                  (click)="details.set(order)"
+                >
                   &#128065;
                 </button>
+
                 @if (canValidate(order.statut)) {
-                  <button class="icon-btn validate" type="button" title="Valider la commande" (click)="validate(order)">
+
+                  <button
+                    class="icon-btn validate"
+                    type="button"
+                    title="Valider la commande"
+                    (click)="validate(order)"
+                  >
                     ✓
                   </button>
+
                 }
+
                 @if (canCancel(order.statut)) {
-                  <button class="icon-btn danger" type="button" title="Annuler la commande" (click)="requestCancel(order)">
+
+                  <button
+                    class="icon-btn danger"
+                    type="button"
+                    title="Annuler la commande"
+                    (click)="requestCancel(order)"
+                  >
                     ✕
                   </button>
+
                 }
+
               </td>
+
             </tr>
+
           }
+
         </tbody>
+
       </table>
+
     </div>
 
-    <div class="pagination" aria-label="Pagination des commandes">
+    <div
+      class="pagination"
+      aria-label="Pagination des commandes"
+    >
+
       <span class="pagination-info">
-        {{ totalCount() }} commande{{ totalCount() > 1 ? 's' : '' }} —
+        {{ totalCount() }}
+        commande{{ totalCount() > 1 ? 's' : '' }}
+        —
         page {{ page() }} / {{ totalPages() }}
       </span>
+
       <div class="pagination-controls">
-        <button class="page-btn" type="button"
+
+        <button
+          class="page-btn"
+          type="button"
           (click)="goToPage(page() - 1)"
           [disabled]="page() <= 1"
-          aria-label="Page précédente">‹</button>
+          aria-label="Page précédente"
+        >
+          ‹
+        </button>
 
         @for (p of pages(); track p) {
-          <button class="page-btn" type="button"
+
+          <button
+            class="page-btn"
+            type="button"
             [class.active]="p === page()"
             (click)="goToPage(p)"
-            [attr.aria-current]="p === page() ? 'page' : null">{{ p }}</button>
+            [attr.aria-current]="p === page() ? 'page' : null"
+          >
+            {{ p }}
+          </button>
+
         }
 
-        <button class="page-btn" type="button"
+        <button
+          class="page-btn"
+          type="button"
           (click)="goToPage(page() + 1)"
           [disabled]="page() >= totalPages()"
-          aria-label="Page suivante">›</button>
+          aria-label="Page suivante"
+        >
+          ›
+        </button>
+
       </div>
+
     </div>
 
   }
+
 }
 
 @if (creating()) {
-  <div class="modal-backdrop" (click)="closeCreate()">
-    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="create-order-title"
-      (click)="$event.stopPropagation()">
+
+  <div
+    class="modal-backdrop"
+    (click)="closeCreate()"
+  >
+
+    <section
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-order-title"
+      (click)="$event.stopPropagation()"
+    >
 
       <div class="modal-header">
+
         <div>
-          <span class="modal-kicker">Commandes</span>
-          <h2 id="create-order-title">Nouvelle commande</h2>
+
+          <span class="modal-kicker">
+            Commandes
+          </span>
+
+          <h2 id="create-order-title">
+            Nouvelle commande
+          </h2>
+
         </div>
-        <button class="modal-close" type="button" (click)="closeCreate()" aria-label="Fermer">×</button>
+
+        <button
+          class="modal-close"
+          type="button"
+          (click)="closeCreate()"
+          aria-label="Fermer"
+        >
+          ×
+        </button>
+
       </div>
 
       <label class="form-label">
-        <span class="field-label"><span class="required">*</span> Client</span>
-        <select [ngModel]="selectedClientId()" (ngModelChange)="selectedClientId.set(+$event || null)">
-          <option [ngValue]="null">Sélectionner un client…</option>
-          @for (client of clients(); track client.id) {
-            <option [value]="client.id">{{ client.nom }} {{ client.prenom ?? '' }} — {{ client.email }}</option>
+
+        <span class="field-label">
+          <span class="required">*</span>
+          Client
+        </span>
+
+        <select
+          [ngModel]="selectedClientId()"
+          (ngModelChange)="selectedClientId.set(+$event || null)"
+        >
+
+          <option [ngValue]="null">
+            Sélectionner un client…
+          </option>
+
+          @for (
+            client of clients();
+            track client.id
+          ) {
+
+            <option [value]="client.id">
+              {{ client.nom }}
+              {{ client.prenom ?? '' }}
+              —
+              {{ client.email }}
+            </option>
+
           }
+
         </select>
+
       </label>
 
+      <div class="form-grid">
+
+        <label class="form-label">
+
+          <span class="field-label">
+            <span class="required">*</span>
+            TVA (%)
+          </span>
+
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            [ngModel]="tva()"
+            (ngModelChange)="setTva(+$event)"
+            placeholder="19"
+          />
+
+        </label>
+
+        <label class="form-label">
+
+          <span class="field-label">
+            Remise (%)
+          </span>
+
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            [ngModel]="remise()"
+            (ngModelChange)="setRemise(+$event)"
+            placeholder="0"
+          />
+
+        </label>
+
+      </div>
+
       <div class="lignes-header">
-        <span class="field-label">Produits commandés</span>
-        <button class="add-ligne-btn" type="button" (click)="addLigne()">+ Ajouter un produit</button>
+
+        <span class="field-label">
+          Produits commandés
+        </span>
+
+        <button
+          class="add-ligne-btn"
+          type="button"
+          (click)="addLigne()"
+        >
+          + Ajouter un produit
+        </button>
+
       </div>
 
       <div class="lignes-list">
-        @for (ligne of lignes(); track $index; let i = $index) {
+
+        @for (
+          ligne of lignes();
+          track $index;
+          let i = $index
+        ) {
+
           <div class="ligne-row">
-            <select class="ligne-select"
+
+            <select
+              class="ligne-select"
               [ngModel]="ligne.produit?.id ?? ''"
               (ngModelChange)="setLigneProduit(i, $event)"
-              aria-label="Produit">
-              <option value="">Sélectionner un produit…</option>
-              @for (p of produits(); track p.id) {
-                <option [value]="p.id">{{ p.libelle }}</option>
+              aria-label="Produit"
+            >
+
+              <option value="">
+                Sélectionner un produit…
+              </option>
+
+              @for (
+                p of produits();
+                track p.id
+              ) {
+
+                <option [value]="p.id">
+                  {{ p.libelle }}
+                </option>
+
               }
+
             </select>
 
             @if (ligne.produit) {
+
               <span class="ligne-info stock">
                 Stock : {{ ligne.produit.stock }}
               </span>
+
               <span class="ligne-info price">
-                {{ ligne.produit.prixUnitaire | number : '1.2-2' }} TND HT
+                {{ ligne.produit.prixUnitaire | number : '1.2-2' }}
+                TND HT
               </span>
+
             } @else {
-              <span class="ligne-info empty">—</span>
-              <span class="ligne-info empty">—</span>
+
+              <span class="ligne-info empty">
+                —
+              </span>
+
+              <span class="ligne-info empty">
+                —
+              </span>
+
             }
 
-            <input class="ligne-qty"
+            <input
+              class="ligne-qty"
               type="number"
               min="1"
               [max]="ligne.produit?.stock ?? 9999"
               [ngModel]="ligne.quantite"
               (ngModelChange)="setLigneQuantite(i, +$event)"
-              aria-label="Quantité" />
+              aria-label="Quantité"
+            />
 
             <span class="ligne-total">
-              {{ (ligne.produit ? ligne.produit.prixUnitaire * ligne.quantite : 0) | number : '1.2-2' }} TND
+
+              {{
+                (
+                  ligne.produit
+                    ? ligne.produit.prixUnitaire * ligne.quantite
+                    : 0
+                ) | number : '1.2-2'
+              }}
+
+              TND
+
             </span>
 
             @if (lignes().length > 1) {
-              <button class="ligne-remove" type="button" (click)="removeLigne(i)" aria-label="Supprimer la ligne">
+
+              <button
+                class="ligne-remove"
+                type="button"
+                (click)="removeLigne(i)"
+                aria-label="Supprimer la ligne"
+              >
                 ×
               </button>
+
             }
+
           </div>
+
         }
+
       </div>
 
       <div class="draft-totals">
+
         <div class="draft-row">
-          <span>Total HT</span>
-          <strong>{{ draftTotalHt() | number : '1.2-2' }} TND</strong>
+
+          <span>
+            Total HT
+          </span>
+
+          <strong>
+            {{ draftTotalHt() | number : '1.2-2' }}
+            TND
+          </strong>
+
         </div>
+
         <div class="draft-row draft-tva">
-          <span>TVA</span>
-          <span>{{ draftTva() | number : '1.2-2' }} TND</span>
+
+          <span>
+            TVA ({{ tva() }}%)
+          </span>
+
+          <span>
+            {{ draftTva() | number : '1.2-2' }}
+            TND
+          </span>
+
         </div>
+
         <div class="draft-row draft-ttc">
-          <span>Total TTC</span>
-          <strong>{{ draftTotalTtc() | number : '1.2-2' }} TND</strong>
+
+          <span>
+            Total TTC
+          </span>
+
+          <strong>
+            {{ draftTotalTtc() | number : '1.2-2' }}
+            TND
+          </strong>
+
         </div>
-         <div class="draft-row draft-ttc">
-          <span>Remise</span>
-          <strong>{{ dtRemise() | number : '1.2-2' }} </strong>
+
+        <div class="draft-row">
+
+          <span>
+            Remise ({{ remise() }}%)
+          </span>
+
+          <strong>
+            -
+            {{ montantRemise() | number : '1.2-2' }}
+            TND
+          </strong>
+
         </div>
+
+        <div class="draft-row draft-final">
+
+          <span>
+            Total après remise
+          </span>
+
+          <strong>
+            {{ totalApresRemise() | number : '1.2-2' }}
+            TND
+          </strong>
+
+        </div>
+
       </div>
 
       @if (createError()) {
-        <p class="form-error" role="alert">{{ createError() }}</p>
+
+        <p
+          class="form-error"
+          role="alert"
+        >
+          {{ createError() }}
+        </p>
+
       }
 
       <div class="modal-actions">
-        <button class="action-btn" type="button" (click)="closeCreate()">Annuler</button>
-        <button class="action-btn primary" type="button" (click)="submitCreate()">
+
+        <button
+          class="action-btn"
+          type="button"
+          (click)="closeCreate()"
+        >
+          Annuler
+        </button>
+
+        <button
+          class="action-btn primary"
+          type="button"
+          (click)="submitCreate()"
+        >
           Créer la commande
         </button>
+
       </div>
+
     </section>
+
   </div>
+
 }
 
 @if (details(); as order) {
-  <div class="modal-backdrop" (click)="details.set(null)">
-    <section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-order-title"
-      (click)="$event.stopPropagation()">
+
+  <div
+    class="modal-backdrop"
+    (click)="details.set(null)"
+  >
+
+    <section
+      class="modal detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detail-order-title"
+      (click)="$event.stopPropagation()"
+    >
 
       <div class="modal-header">
+
         <div>
-          <span class="modal-kicker">Détail commande</span>
-          <h2 id="detail-order-title">{{ order.numero }}</h2>
+
+          <span class="modal-kicker">
+            Détail commande
+          </span>
+
+          <h2 id="detail-order-title">
+            {{ order.numero }}
+          </h2>
+
         </div>
-        <button class="modal-close" type="button" (click)="details.set(null)" aria-label="Fermer">×</button>
+
+        <button
+          class="modal-close"
+          type="button"
+          (click)="details.set(null)"
+          aria-label="Fermer"
+        >
+          ×
+        </button>
+
       </div>
 
       <div class="detail-meta">
-        <div><span>Client</span><strong>{{ order.clientNom }}</strong></div>
-        <div><span>Date</span><strong>{{ order.dateCommande | date : 'dd/MM/yyyy' }}</strong></div>
+
         <div>
-          <span>Statut</span>
-          <span class="badge" [class]="statusClass(order.statut)">{{ statusLabel(order.statut) }}</span>
+
+          <span>
+            Client
+          </span>
+
+          <strong>
+            {{ order.clientNom }}
+          </strong>
+
         </div>
-        <div><span>Créée le</span><strong>{{ order.createdAt | date : 'dd/MM/yyyy HH:mm' }}</strong></div>
+
+        <div>
+
+          <span>
+            Date
+          </span>
+
+          <strong>
+            {{ order.dateCommande | date : 'dd/MM/yyyy' }}
+          </strong>
+
+        </div>
+
+        <div>
+
+          <span>
+            Statut
+          </span>
+
+          <span
+            class="badge"
+            [class]="statusClass(order.statut)"
+          >
+            {{ statusLabel(order.statut) }}
+          </span>
+
+        </div>
+
+        <div>
+
+          <span>
+            Créée le
+          </span>
+
+          <strong>
+            {{ order.createdAt | date : 'dd/MM/yyyy HH:mm' }}
+          </strong>
+
+        </div>
+
       </div>
 
-      <table class="detail-table" aria-label="Lignes de commande">
+      <table
+        class="detail-table"
+        aria-label="Lignes de commande"
+      >
+
         <thead>
+
           <tr>
             <th>Référence</th>
             <th>Produit</th>
@@ -235,73 +671,247 @@
             <th class="col-right">P.U.</th>
             <th class="col-right">Total ligne</th>
           </tr>
+
         </thead>
+
         <tbody>
-          @for (ligne of order.lignes; track ligne.id) {
+
+          @for (
+            ligne of order.lignes;
+            track ligne.id
+          ) {
+
             <tr>
-              <td class="cell-mono">{{ ligne.referenceProduit }}</td>
-              <td>{{ ligne.libelleProduit }}</td>
-              <td class="col-right">{{ ligne.quantite }}</td>
-              <td class="col-right">{{ ligne.prixUnitaire | number : '1.2-2' }} TND</td>
-              <td class="col-right cell-bold">{{ ligne.totalLigne | number : '1.2-2' }} TND</td>
+
+              <td class="cell-mono">
+                {{ ligne.referenceProduit }}
+              </td>
+
+              <td>
+                {{ ligne.libelleProduit }}
+              </td>
+
+              <td class="col-right">
+                {{ ligne.quantite }}
+              </td>
+
+              <td class="col-right">
+                {{ ligne.prixUnitaire | number : '1.2-2' }}
+                TND
+              </td>
+
+              <td class="col-right cell-bold">
+                {{ ligne.totalLigne | number : '1.2-2' }}
+                TND
+              </td>
+
             </tr>
+
           }
+
         </tbody>
+
         <tfoot>
+
           <tr>
-            <td colspan="4" class="col-right tfoot-label">Total HT</td>
-            <td class="col-right">{{ order.totalHt | number : '1.2-2' }} TND</td>
+
+            <td
+              colspan="4"
+              class="col-right tfoot-label"
+            >
+              Total HT
+            </td>
+
+            <td class="col-right">
+
+              {{ order.totalHt | number : '1.2-2' }}
+              TND
+
+            </td>
+
           </tr>
+
           <tr>
-            <td colspan="4" class="col-right tfoot-label">TVA</td>
-            <td class="col-right tfoot-tva">{{ order.tva | number : '1.2-2' }} TND</td>
+
+            <td
+              colspan="4"
+              class="col-right tfoot-label"
+            >
+              TVA ({{ order.tva }}%)
+            </td>
+
+            <td class="col-right tfoot-tva">
+
+              {{ getMontantTva(order) | number : '1.2-2' }}
+              TND
+
+            </td>
+
           </tr>
+
           <tr>
-            <td colspan="4" class="col-right tfoot-label">Total TTC</td>
-            <td class="col-right tfoot-total">{{ order.totalTtc | number : '1.2-2' }} TND</td>
+
+            <td
+              colspan="4"
+              class="col-right tfoot-label"
+            >
+              Total TTC
+            </td>
+
+            <td class="col-right tfoot-total">
+
+              {{ order.totalTtc | number : '1.2-2' }}
+              TND
+
+            </td>
+
           </tr>
+
           <tr>
-            <td colspan="4" class="col-right tfoot-label">Remise</td>
-            <td class="col-right tfoot-total">{{ order.Remise | number : '1.2-2' }} </td>
+
+            <td
+              colspan="4"
+              class="col-right tfoot-label"
+            >
+              Remise ({{ order.remise }}%)
+            </td>
+
+            <td class="col-right">
+
+              -
+              {{ getMontantRemise(order) | number : '1.2-2' }}
+              TND
+
+            </td>
+
           </tr>
+
+          <tr>
+
+            <td
+              colspan="4"
+              class="col-right tfoot-label"
+            >
+              Total après remise
+            </td>
+
+            <td class="col-right tfoot-total">
+
+              {{ getTotalApresRemise(order) | number : '1.2-2' }}
+              TND
+
+            </td>
+
+          </tr>
+
         </tfoot>
+
       </table>
 
       <div class="modal-actions">
+
         @if (canValidate(order.statut)) {
-          <button class="action-btn validate-btn" type="button"
-            (click)="validate(order); details.set(null)">
+
+          <button
+            class="action-btn validate-btn"
+            type="button"
+            (click)="validate(order); details.set(null)"
+          >
             ✓ Valider la commande
           </button>
+
         }
+
         @if (canCancel(order.statut)) {
-          <button class="action-btn danger-solid" type="button" (click)="requestCancel(order)">
+
+          <button
+            class="action-btn danger-solid"
+            type="button"
+            (click)="requestCancel(order)"
+          >
             Annuler la commande
           </button>
+
         }
-        <button class="action-btn primary" type="button" (click)="details.set(null)">Fermer</button>
+
+        <button
+          class="action-btn primary"
+          type="button"
+          (click)="details.set(null)"
+        >
+          Fermer
+        </button>
+
       </div>
+
     </section>
+
   </div>
+
 }
 
 @if (pendingCancel(); as order) {
-  <div class="modal-backdrop" (click)="dismissCancel()">
-    <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-order-title"
-      (click)="$event.stopPropagation()">
-      <div class="confirm-icon">✕</div>
-      <h2 id="cancel-order-title">Annuler cette commande ?</h2>
-      <p>
-        La commande <strong>{{ order.numero }}</strong> passera au statut <strong>Annulée</strong>.
-        @if (willRestoreStock(order.statut)) {
-          Le stock des produits sera remis à jour.
-        }
-        Cette action est irréversible.
-      </p>
-      <div class="modal-actions">
-        <button class="action-btn" type="button" (click)="dismissCancel()">Retour</button>
-        <button class="action-btn danger-solid" type="button" (click)="confirmCancel()">Confirmer l'annulation</button>
+
+  <div
+    class="modal-backdrop"
+    (click)="dismissCancel()"
+  >
+
+    <section
+      class="modal confirm-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-order-title"
+      (click)="$event.stopPropagation()"
+    >
+
+      <div class="confirm-icon">
+        ✕
       </div>
+
+      <h2 id="cancel-order-title">
+        Annuler cette commande ?
+      </h2>
+
+      <p>
+
+        La commande
+        <strong>{{ order.numero }}</strong>
+        passera au statut
+        <strong>Annulée</strong>.
+
+        @if (willRestoreStock(order.statut)) {
+
+          Le stock des produits sera remis à jour.
+
+        }
+
+        Cette action est irréversible.
+
+      </p>
+
+      <div class="modal-actions">
+
+        <button
+          class="action-btn"
+          type="button"
+          (click)="dismissCancel()"
+        >
+          Retour
+        </button>
+
+        <button
+          class="action-btn danger-solid"
+          type="button"
+          (click)="confirmCancel()"
+        >
+          Confirmer l'annulation
+        </button>
+
+      </div>
+
     </section>
+
   </div>
+
 }
